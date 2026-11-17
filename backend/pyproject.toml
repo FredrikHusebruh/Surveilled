@@ -1,0 +1,52 @@
+[project]
+name = "surveilled-backend"
+version = "0.1.0"
+description = "Server-authoritative engine and API for the Surveilled logic puzzle."
+requires-python = ">=3.13"
+dependencies = [
+    "fastapi[standard]>=0.163.1",
+    "httpx>=0.28.1",
+    "pydantic-settings>=2.16.3",
+]
+
+[dependency-groups]
+dev = [
+    "pyright>=1.1.414",
+    "pytest>=9.2.0",
+    "ruff>=0.17.5",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = ["--strict-markers"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+
+[tool.ruff.lint]
+select = [
+    "E", "W",   # pycodestyle
+    "F",        # pyflakes: unused imports and variables, undefined names
+    "I",        # import order
+    "B",        # bugbear: likely bugs
+    "UP",       # modern syntax for the target version
+    "SIM",      # simplifications
+    "C4",       # comprehensions
+    "PT",       # pytest style
+    "RUF",      # ruff's own checks
+    "BLE",      # no blind `except Exception`
+    "TRY",      # exception hygiene
+    "ANN",      # every function annotated
+]
+ignore = [
+    "TRY003",   # domain errors carry their player-facing message at the raise site
+]
+
+[tool.pyright]
+include = ["app", "tests", "scripts"]
+pythonVersion = "3.13"
+typeCheckingMode = "strict"
+venvPath = "."
+venv = ".venv"

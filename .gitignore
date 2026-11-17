@@ -1,0 +1,15 @@
+# Frontend
+node_modules/
+dist/
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+
+# Local environment variables
+.env
+.env.*
+!.env.example

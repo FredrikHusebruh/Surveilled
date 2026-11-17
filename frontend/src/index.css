@@ -1,0 +1,211 @@
+@import "tailwindcss";
+
+/* Dev builds only: the Developer tools toggle sets data-cubicles on <html> to draw the cubicles. */
+@custom-variant cubicles (&:where([data-cubicles] *));
+
+/* Design tokens, exactly as .claude/rules/design.md defines them. */
+:root {
+  --concrete: #c3c7bf; /* page background */
+  --paper: #e9ebe4; /* hidden cells, buttons, panels */
+  --cleared: #d6d9d1; /* cells that show a number */
+  --ink: #1b1f1d; /* all text, board frame, true (black) numbers */
+  --slate: #3a413d; /* walls only, never text */
+  --muted: #4a514c; /* secondary text */
+  --party: #b3261e; /* Party: red numbers, stamps, strikes, primary button fill */
+  --party-text: #9a2019; /* red text under 24px on concrete */
+  --gaze: #e4c24f; /* sight-line highlight on hidden cells */
+  --gaze-number: #d9c46e; /* sight-line highlight on numbered cells */
+  --siren: #2b4fd6; /* police blue: the loss siren only, never text or UI */
+  --dossier: #e3d3af; /* manila: the folder only, as the base of its shades */
+  --coffee: #6f4520; /* the coffee ring on the orders and the day's last report, always translucent */
+
+  --font-display:
+    "Big Shoulders Stencil Display", Impact, "Arial Narrow", sans-serif;
+  --font-digit: "Big Shoulders Display", Impact, "Arial Narrow", sans-serif;
+  --font-body: "Courier Prime", "Courier New", Courier, monospace;
+
+  --space-board: 3px;
+  --space-1: 4px;
+  --space-2: 6px;
+  --space-3: 10px;
+  --space-4: 14px;
+  --space-5: 16px;
+  --cell-max: 60px;
+  --sheet-max: 500px;
+  --shadow-tile: inset 0 -4px 0 rgba(27, 31, 29, 0.16);
+  color-scheme: light;
+}
+
+/* Expose the tokens as Tailwind utilities. The default palette is removed so no other color can slip in. */
+@theme inline {
+  --color-*: initial;
+  --color-concrete: var(--concrete);
+  --color-paper: var(--paper);
+  --color-cleared: var(--cleared);
+  --color-ink: var(--ink);
+  --color-slate: var(--slate);
+  --color-muted: var(--muted);
+  --color-party: var(--party);
+  --color-party-text: var(--party-text);
+  --color-gaze: var(--gaze);
+  --color-gaze-number: var(--gaze-number);
+  --color-siren: var(--siren);
+  --color-dossier: var(--dossier);
+  --color-coffee: var(--coffee);
+
+  --font-*: initial;
+  --font-stencil: var(--font-display);
+  --font-condensed: var(--font-digit);
+  --font-typewriter: var(--font-body);
+  --default-font-family: var(--font-body);
+}
+
+/*
+ * The only animations (design rule 9). Use them behind motion-safe: only.
+ * Alarm flashes stay at or under 1.25 flashes per second per light, well below the three-per-second
+ * photosensitivity limit (WCAG 2.3.1), and never fill the screen with saturated red.
+ */
+@theme {
+  --animate-thunk: thunk 0.22s cubic-bezier(0.3, 1.4, 0.6, 1) both;
+  --animate-blink: blink 1s steps(2) infinite;
+  --animate-shake: shake 0.42s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+  --animate-alarm: alarm 0.9s ease-out;
+  --animate-siren-red: siren-red 0.8s linear 4;
+  --animate-siren-blue: siren-blue 0.8s linear 4;
+  --animate-seal-break: seal-break 0.28s ease-in both;
+  --animate-cover-open: cover-open 0.6s cubic-bezier(0.4, 0, 0.2, 1) 0.22s both;
+  --animate-paper-lift: paper-lift 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) 0.75s both;
+  --animate-unfold: unfold 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+
+  /* The orders unfold from the top, like a letter opened out of its folds. */
+  @keyframes unfold {
+    from {
+      scale: 1 0.18;
+      opacity: 0.4;
+    }
+    60% {
+      opacity: 1;
+    }
+    to {
+      scale: 1 1;
+      opacity: 1;
+    }
+  }
+
+  /* The folder: the seal and ribbon break, the cover swings open, the orders lift out. */
+  @keyframes seal-break {
+    0% {
+      opacity: 1;
+      scale: 1;
+    }
+    40% {
+      scale: 1.15;
+    }
+    100% {
+      opacity: 0;
+      scale: 1.35;
+    }
+  }
+  @keyframes cover-open {
+    0% {
+      transform: rotateY(0deg);
+      opacity: 1;
+    }
+    75% {
+      opacity: 1;
+    }
+    100% {
+      transform: rotateY(-100deg);
+      opacity: 0;
+    }
+  }
+  @keyframes paper-lift {
+    from {
+      translate: 0 0;
+      scale: 1;
+    }
+    to {
+      translate: 0 -5%;
+      scale: 1.03;
+    }
+  }
+
+  @keyframes shake {
+    0%,
+    100% {
+      translate: 0 0;
+    }
+    15% {
+      translate: -7px 0;
+    }
+    30% {
+      translate: 6px 0;
+    }
+    45% {
+      translate: -5px 0;
+    }
+    60% {
+      translate: 4px 0;
+    }
+    75% {
+      translate: -2px 0;
+    }
+  }
+  @keyframes alarm {
+    0% {
+      opacity: 0;
+    }
+    12% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+    }
+  }
+  @keyframes siren-red {
+    0%,
+    49% {
+      opacity: 0.85;
+    }
+    50%,
+    100% {
+      opacity: 0.08;
+    }
+  }
+  @keyframes siren-blue {
+    0%,
+    49% {
+      opacity: 0.08;
+    }
+    50%,
+    100% {
+      opacity: 0.85;
+    }
+  }
+
+  @keyframes thunk {
+    from {
+      scale: 1.9;
+      opacity: 0;
+    }
+    to {
+      scale: 1;
+      opacity: 1;
+    }
+  }
+  @keyframes blink {
+    50% {
+      outline-color: transparent;
+    }
+  }
+}
+
+@layer base {
+  body {
+    background: var(--concrete);
+    color: var(--ink);
+    font-family: var(--font-body);
+    font-size: 15px;
+    line-height: 1.5;
+  }
+}

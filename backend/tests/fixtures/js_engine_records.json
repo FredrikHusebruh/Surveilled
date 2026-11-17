@@ -1,0 +1,897 @@
+{
+ "source": "Telescreens JS engine (original HTML), generated for parity tests",
+ "rng": {
+  "0": [
+   0.26642920868471265,
+   0.0003297457005828619,
+   0.2232720274478197,
+   0.1462021479383111,
+   0.46732782293111086
+  ],
+  "4127": [
+   0.7712556312326342,
+   0.7958719900343567,
+   0.07919650082476437,
+   0.6695514186285436,
+   0.3072646679356694
+  ],
+  "4294967295": [
+   0.8964226141106337,
+   0.189478256739676,
+   0.7156526781618595,
+   0.9440599093213677,
+   0.8452364315744489
+  ]
+ },
+ "records": [
+  {
+   "chapter": 1,
+   "recordNo": 10000,
+   "walls": [],
+   "cameras": [
+    6,
+    14,
+    18,
+    21,
+    22
+   ],
+   "clues": [
+    {
+     "cell": 23,
+     "shown": 3,
+     "liar": false
+    },
+    {
+     "cell": 24,
+     "shown": 3,
+     "liar": false
+    },
+    {
+     "cell": 9,
+     "shown": 2,
+     "liar": false
+    },
+    {
+     "cell": 8,
+     "shown": 2,
+     "liar": false
+    },
+    {
+     "cell": 19,
+     "shown": 2,
+     "liar": false
+    },
+    {
+     "cell": 0,
+     "shown": 0,
+     "liar": false
+    }
+   ],
+   "rating": 1
+  },
+  {
+   "chapter": 1,
+   "recordNo": 4127,
+   "walls": [],
+   "cameras": [
+    1,
+    5,
+    12,
+    18,
+    24
+   ],
+   "clues": [
+    {
+     "cell": 10,
+     "shown": 2,
+     "liar": false
+    },
+    {
+     "cell": 14,
+     "shown": 2,
+     "liar": false
+    },
+    {
+     "cell": 3,
+     "shown": 2,
+     "liar": false
+    },
+    {
+     "cell": 8,
+     "shown": 2,
+     "liar": false
+    },
+    {
+     "cell": 6,
+     "shown": 2,
+     "liar": false
+    },
+    {
+     "cell": 13,
+     "shown": 2,
+     "liar": false
+    },
+    {
+     "cell": 11,
+     "shown": 2,
+     "liar": false
+    },
+    {
+     "cell": 19,
+     "shown": 2,
+     "liar": false
+    },
+    {
+     "cell": 4,
+     "shown": 2,
+     "liar": false
+    },
+    {
+     "cell": 23,
+     "shown": 2,
+     "liar": false
+    },
+    {
+     "cell": 9,
+     "shown": 2,
+     "liar": false
+    }
+   ],
+   "rating": 1
+  },
+  {
+   "chapter": 1,
+   "recordNo": 99999,
+   "walls": [],
+   "cameras": [
+    5,
+    9,
+    13,
+    18,
+    21
+   ],
+   "clues": [
+    {
+     "cell": 8,
+     "shown": 4,
+     "liar": false
+    },
+    {
+     "cell": 11,
+     "shown": 2,
+     "liar": false
+    },
+    {
+     "cell": 6,
+     "shown": 3,
+     "liar": false
+    },
+    {
+     "cell": 16,
+     "shown": 2,
+     "liar": false
+    },
+    {
+     "cell": 2,
+     "shown": 0,
+     "liar": false
+    }
+   ],
+   "rating": 1
+  },
+  {
+   "chapter": 2,
+   "recordNo": 10000,
+   "walls": [
+    4,
+    14,
+    20,
+    23,
+    24,
+    30,
+    31
+   ],
+   "cameras": [
+    2,
+    5,
+    9,
+    18,
+    19,
+    21,
+    35
+   ],
+   "clues": [
+    {
+     "cell": 3,
+     "shown": 3,
+     "liar": false
+    },
+    {
+     "cell": 13,
+     "shown": 1,
+     "liar": false
+    },
+    {
+     "cell": 28,
+     "shown": 0,
+     "liar": false
+    }
+   ],
+   "rating": 1
+  },
+  {
+   "chapter": 2,
+   "recordNo": 4127,
+   "walls": [
+    5,
+    8,
+    12,
+    14,
+    20,
+    29,
+    33
+   ],
+   "cameras": [
+    0,
+    9,
+    11,
+    18,
+    23,
+    28,
+    35
+   ],
+   "clues": [
+    {
+     "cell": 13,
+     "shown": 0,
+     "liar": false
+    },
+    {
+     "cell": 27,
+     "shown": 2,
+     "liar": false
+    }
+   ],
+   "rating": 1
+  },
+  {
+   "chapter": 2,
+   "recordNo": 31337,
+   "walls": [
+    1,
+    7,
+    12,
+    15,
+    19,
+    21,
+    27
+   ],
+   "cameras": [
+    6,
+    11,
+    20,
+    22,
+    24,
+    25,
+    32
+   ],
+   "clues": [
+    {
+     "cell": 26,
+     "shown": 4,
+     "liar": false
+    },
+    {
+     "cell": 0,
+     "shown": 1,
+     "liar": false
+    },
+    {
+     "cell": 13,
+     "shown": 0,
+     "liar": false
+    },
+    {
+     "cell": 2,
+     "shown": 2,
+     "liar": false
+    },
+    {
+     "cell": 8,
+     "shown": 3,
+     "liar": false
+    },
+    {
+     "cell": 10,
+     "shown": 2,
+     "liar": false
+    }
+   ],
+   "rating": 1
+  },
+  {
+   "chapter": 3,
+   "recordNo": 31337,
+   "walls": [
+    1,
+    19,
+    21,
+    34,
+    35,
+    37
+   ],
+   "cameras": [
+    0,
+    4,
+    6,
+    22,
+    25,
+    26,
+    29,
+    32
+   ],
+   "clues": [
+    {
+     "cell": 3,
+     "shown": 1,
+     "liar": false
+    },
+    {
+     "cell": 2,
+     "shown": 4,
+     "liar": true
+    },
+    {
+     "cell": 8,
+     "shown": 3,
+     "liar": false
+    },
+    {
+     "cell": 7,
+     "shown": 2,
+     "liar": true
+    },
+    {
+     "cell": 14,
+     "shown": 2,
+     "liar": false
+    },
+    {
+     "cell": 15,
+     "shown": 1,
+     "liar": true
+    },
+    {
+     "cell": 18,
+     "shown": 1,
+     "liar": true
+    },
+    {
+     "cell": 20,
+     "shown": 2,
+     "liar": false
+    },
+    {
+     "cell": 24,
+     "shown": 5,
+     "liar": false
+    },
+    {
+     "cell": 28,
+     "shown": 4,
+     "liar": true
+    },
+    {
+     "cell": 31,
+     "shown": 1,
+     "liar": true
+    },
+    {
+     "cell": 30,
+     "shown": 3,
+     "liar": false
+    },
+    {
+     "cell": 38,
+     "shown": 2,
+     "liar": false
+    },
+    {
+     "cell": 36,
+     "shown": 3,
+     "liar": true
+    }
+   ],
+   "rating": 2
+  },
+  {
+   "chapter": 3,
+   "recordNo": 99999,
+   "walls": [
+    13,
+    22,
+    28,
+    31,
+    39,
+    40
+   ],
+   "cameras": [
+    1,
+    5,
+    11,
+    12,
+    15,
+    23,
+    27,
+    32
+   ],
+   "clues": [
+    {
+     "cell": 3,
+     "shown": 4,
+     "liar": false
+    },
+    {
+     "cell": 2,
+     "shown": 4,
+     "liar": true
+    },
+    {
+     "cell": 9,
+     "shown": 3,
+     "liar": false
+    },
+    {
+     "cell": 6,
+     "shown": 3,
+     "liar": true
+    },
+    {
+     "cell": 16,
+     "shown": 1,
+     "liar": false
+    },
+    {
+     "cell": 17,
+     "shown": 3,
+     "liar": true
+    },
+    {
+     "cell": 20,
+     "shown": 1,
+     "liar": false
+    },
+    {
+     "cell": 18,
+     "shown": 2,
+     "liar": true
+    },
+    {
+     "cell": 29,
+     "shown": 2,
+     "liar": true
+    },
+    {
+     "cell": 25,
+     "shown": 1,
+     "liar": false
+    },
+    {
+     "cell": 30,
+     "shown": 2,
+     "liar": true
+    },
+    {
+     "cell": 33,
+     "shown": 3,
+     "liar": false
+    },
+    {
+     "cell": 38,
+     "shown": 1,
+     "liar": false
+    },
+    {
+     "cell": 41,
+     "shown": 4,
+     "liar": true
+    },
+    {
+     "cell": 35,
+     "shown": 4,
+     "liar": false
+    }
+   ],
+   "rating": 2
+  },
+  {
+   "chapter": 3,
+   "recordNo": 10000,
+   "walls": [
+    7,
+    19,
+    21,
+    29,
+    34,
+    38
+   ],
+   "cameras": [
+    1,
+    2,
+    5,
+    6,
+    10,
+    13,
+    25,
+    41
+   ],
+   "clues": [
+    {
+     "cell": 4,
+     "shown": 4,
+     "liar": false
+    },
+    {
+     "cell": 3,
+     "shown": 4,
+     "liar": true
+    },
+    {
+     "cell": 11,
+     "shown": 1,
+     "liar": true
+    },
+    {
+     "cell": 9,
+     "shown": 1,
+     "liar": false
+    },
+    {
+     "cell": 15,
+     "shown": 1,
+     "liar": false
+    },
+    {
+     "cell": 14,
+     "shown": 3,
+     "liar": true
+    },
+    {
+     "cell": 18,
+     "shown": 1,
+     "liar": false
+    },
+    {
+     "cell": 23,
+     "shown": 2,
+     "liar": true
+    },
+    {
+     "cell": 24,
+     "shown": 1,
+     "liar": true
+    },
+    {
+     "cell": 27,
+     "shown": 1,
+     "liar": false
+    },
+    {
+     "cell": 31,
+     "shown": 2,
+     "liar": true
+    },
+    {
+     "cell": 36,
+     "shown": 2,
+     "liar": true
+    },
+    {
+     "cell": 37,
+     "shown": 1,
+     "liar": false
+    },
+    {
+     "cell": 30,
+     "shown": 1,
+     "liar": false
+    },
+    {
+     "cell": 12,
+     "shown": 2,
+     "liar": false
+    },
+    {
+     "cell": 0,
+     "shown": 4,
+     "liar": false
+    }
+   ],
+   "rating": 2
+  },
+  {
+   "chapter": 4,
+   "recordNo": 4096,
+   "walls": [
+    0,
+    7,
+    13,
+    14,
+    20,
+    27,
+    29,
+    30,
+    31,
+    41
+   ],
+   "cameras": [
+    3,
+    6,
+    16,
+    18,
+    19,
+    24,
+    25,
+    28,
+    32,
+    40,
+    46,
+    48
+   ],
+   "clues": [
+    {
+     "cell": 4,
+     "shown": 6,
+     "liar": false
+    },
+    {
+     "cell": 5,
+     "shown": 3,
+     "liar": true
+    },
+    {
+     "cell": 11,
+     "shown": 3,
+     "liar": true
+    },
+    {
+     "cell": 17,
+     "shown": 6,
+     "liar": true
+    },
+    {
+     "cell": 26,
+     "shown": 3,
+     "liar": true
+    },
+    {
+     "cell": 33,
+     "shown": 2,
+     "liar": true
+    },
+    {
+     "cell": 34,
+     "shown": 1,
+     "liar": false
+    },
+    {
+     "cell": 39,
+     "shown": 4,
+     "liar": true
+    },
+    {
+     "cell": 42,
+     "shown": 4,
+     "liar": true
+    },
+    {
+     "cell": 53,
+     "shown": 5,
+     "liar": true
+    }
+   ],
+   "rating": 3
+  },
+  {
+   "chapter": 4,
+   "recordNo": 31337,
+   "walls": [
+    6,
+    8,
+    9,
+    16,
+    25,
+    41,
+    48,
+    49,
+    50,
+    53
+   ],
+   "cameras": [
+    4,
+    5,
+    13,
+    15,
+    21,
+    26,
+    29,
+    32,
+    40,
+    43,
+    46,
+    55
+   ],
+   "clues": [
+    {
+     "cell": 2,
+     "shown": 3,
+     "liar": true
+    },
+    {
+     "cell": 11,
+     "shown": 3,
+     "liar": true
+    },
+    {
+     "cell": 17,
+     "shown": 1,
+     "liar": true
+    },
+    {
+     "cell": 22,
+     "shown": 5,
+     "liar": true
+    },
+    {
+     "cell": 28,
+     "shown": 2,
+     "liar": true
+    },
+    {
+     "cell": 38,
+     "shown": 2,
+     "liar": true
+    },
+    {
+     "cell": 42,
+     "shown": 2,
+     "liar": true
+    },
+    {
+     "cell": 54,
+     "shown": 3,
+     "liar": true
+    },
+    {
+     "cell": 12,
+     "shown": 4,
+     "liar": false
+    },
+    {
+     "cell": 18,
+     "shown": 1,
+     "liar": false
+    },
+    {
+     "cell": 39,
+     "shown": 3,
+     "liar": false
+    },
+    {
+     "cell": 36,
+     "shown": 4,
+     "liar": false
+    }
+   ],
+   "rating": 3
+  },
+  {
+   "chapter": 4,
+   "recordNo": 88888,
+   "walls": [
+    4,
+    5,
+    10,
+    16,
+    19,
+    21,
+    37,
+    38,
+    41,
+    54
+   ],
+   "cameras": [
+    9,
+    12,
+    23,
+    26,
+    27,
+    29,
+    32,
+    43,
+    46,
+    47,
+    48,
+    55
+   ],
+   "clues": [
+    {
+     "cell": 2,
+     "shown": 2,
+     "liar": true
+    },
+    {
+     "cell": 11,
+     "shown": 3,
+     "liar": false
+    },
+    {
+     "cell": 8,
+     "shown": 4,
+     "liar": true
+    },
+    {
+     "cell": 14,
+     "shown": 0,
+     "liar": false
+    },
+    {
+     "cell": 17,
+     "shown": 1,
+     "liar": true
+    },
+    {
+     "cell": 24,
+     "shown": 4,
+     "liar": true
+    },
+    {
+     "cell": 22,
+     "shown": 5,
+     "liar": false
+    },
+    {
+     "cell": 34,
+     "shown": 2,
+     "liar": true
+    },
+    {
+     "cell": 36,
+     "shown": 2,
+     "liar": false
+    },
+    {
+     "cell": 40,
+     "shown": 3,
+     "liar": true
+    },
+    {
+     "cell": 44,
+     "shown": 3,
+     "liar": true
+    },
+    {
+     "cell": 52,
+     "shown": 0,
+     "liar": false
+    },
+    {
+     "cell": 50,
+     "shown": 3,
+     "liar": true
+    },
+    {
+     "cell": 39,
+     "shown": 2,
+     "liar": false
+    },
+    {
+     "cell": 25,
+     "shown": 5,
+     "liar": false
+    }
+   ],
+   "rating": 3
+  }
+ ]
+}
