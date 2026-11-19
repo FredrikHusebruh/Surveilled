@@ -140,6 +140,11 @@ export function sightMessage(game: Game, cell: number): string {
   return text;
 }
 
+/** What the Hint button says to screen readers, since its count is drawn as squares. */
+export function hintButtonLabel(hintsLeft: number, hintsPerDay: number): string {
+  return hintsLeft === 0 ? "Hint, none left today" : `Hint, ${hintsLeft} of ${hintsPerDay} left today`;
+}
+
 export function hintMessage(hint: Hint, lies: boolean): string {
   switch (hint.kind) {
     case "wrong_mark":

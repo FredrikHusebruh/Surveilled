@@ -120,6 +120,23 @@ def test_mark_stamp_and_hint(client: TestClient) -> None:
     assert _game(stamped, 3)["cells"][5] == {"kind": "given", "value": 2, "stamped": True}
     assert hinted["hint"]["kind"] == "wrong_mark"
     assert _game(hinted["daily"], 3)["hints"] == 1
+    assert hinted["daily"]["hintsPerDay"] == 3
+    assert hinted["daily"]["hintsLeft"] == 2
+
+
+def test_a_fourth_hint_in_a_day_is_refused(client: TestClient) -> None:
+    _start(client, 1)
+    # Cell 3 is safe, so marking it makes every hint point out the wrong mark, and each counts.
+    client.post(f"{DAY}/levels/1/mark", json={"cell": 3})
+    url = f"{DAY}/levels/1/hint"
+    for _ in range(3):
+        assert client.post(url).status_code == 200
+
+    refused = client.post(url)
+
+    assert refused.status_code == 409
+    assert "hints" in refused.json()["detail"]
+    assert client.get(DAY).json()["hintsLeft"] == 0
 
 
 def test_each_browser_has_its_own_day(client: TestClient) -> None:

@@ -31,6 +31,11 @@ class RankingsUnavailableError(DomainError):
         super().__init__("Rankings are unavailable right now. Try again later.")
 
 
+class HintsSpentError(InvalidMoveError):
+    def __init__(self) -> None:
+        super().__init__("You have used today's hints. New hints come with tomorrow's records.")
+
+
 class GameOverError(InvalidMoveError):
     def __init__(self) -> None:
         super().__init__("That record is closed.")

@@ -1,0 +1,31 @@
+# Production stack on the Oracle VM: the API behind Caddy, which serves HTTPS with an automatic
+# certificate for API_HOST. The deploy workflow copies backend/ and deploy/ to /opt/surveilled and
+# runs `API_HOST=... docker compose up -d --build` from this folder.
+services:
+  api:
+    build: ../backend
+    env_file: ../backend.env
+    restart: unless-stopped
+    expose:
+      - "8000"
+
+  caddy:
+    image: caddy:2.10
+    restart: unless-stopped
+    depends_on:
+      - api
+    environment:
+      API_HOST: ${API_HOST:?Set API_HOST, for example 1-2-3-4.sslip.io}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  # Holds the HTTPS certificate. Keeping it across deploys avoids hitting Let's Encrypt's limits.
+  caddy_data:
+  caddy_config:

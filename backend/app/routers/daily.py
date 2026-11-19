@@ -82,7 +82,8 @@ def toggle_stamp(
 @router.post(
     "/{day}/levels/{level}/hint",
     summary="Take a hint",
-    description="The easiest provable next step. Counts against the record unless none is found.",
+    description="The easiest provable next step. Counts against the record unless none is found. "
+    "A player gets three hints a day across all levels; after that, 409.",
 )
 def take_hint(day: date, level: int, player: PlayerDep, service: DailyServiceDep) -> HintResponse:
     run, hint = service.hint(player, day, level)

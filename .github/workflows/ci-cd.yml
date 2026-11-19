@@ -1,0 +1,184 @@
+# Checks every pull request and every push to main. A push to main that passes the checks then
+# deploys: the backend to the Oracle VM first (only if backend/ or deploy/ changed), then the
+# frontend to Netlify (only if frontend/ changed). Backend first, because the frontend parses every
+# response strictly and may need fields only the new backend sends.
+#
+# Set these in GitHub > Settings > Secrets and variables > Actions (see deploy/README.md):
+#   variables: API_HOST (e.g. 1-2-3-4.sslip.io), VM_HOST (the VM's public IP)
+#   secrets:   VM_SSH_KEY, VM_KNOWN_HOSTS, NETLIFY_AUTH_TOKEN, NETLIFY_SITE_ID
+name: CI/CD
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      deploy_all:
+        description: Deploy the backend and the frontend even if they didn't change
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+# Never run two deploys at once; a queued one waits instead of cancelling a deploy halfway.
+concurrency:
+  group: ci-cd-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  backend-checks:
+    name: Backend checks
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.9.24"
+          enable-cache: true
+      - run: uv sync --locked
+      - run: uv run ruff check
+      - run: uv run ruff format --check
+      - run: uv run pyright
+      - run: uv run pytest
+
+  frontend-checks:
+    name: Frontend checks
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run build
+
+  changes:
+    name: What changed
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04
+    outputs:
+      backend: ${{ steps.diff.outputs.backend }}
+      frontend: ${{ steps.diff.outputs.frontend }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: diff
+        env:
+          BEFORE: ${{ github.event.before }}
+          DEPLOY_ALL: ${{ github.event_name == 'workflow_dispatch' && inputs.deploy_all }}
+        run: |
+          if [[ $DEPLOY_ALL == true ]] || ! git cat-file -e "${BEFORE}^{commit}" 2>/dev/null; then
+            echo "backend=true" >> "$GITHUB_OUTPUT"
+            echo "frontend=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          changed=$(git diff --name-only "$BEFORE" "$GITHUB_SHA")
+          grep -qE '^(backend|deploy)/' <<< "$changed" && backend=true || backend=false
+          grep -qE '^frontend/' <<< "$changed" && frontend=true || frontend=false
+          echo "backend=$backend" >> "$GITHUB_OUTPUT"
+          echo "frontend=$frontend" >> "$GITHUB_OUTPUT"
+          echo "backend=$backend frontend=$frontend"
+
+  deploy-backend:
+    name: Deploy backend
+    needs: [backend-checks, frontend-checks, changes]
+    if: github.ref == 'refs/heads/main' && needs.changes.outputs.backend == 'true'
+    runs-on: ubuntu-24.04
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up SSH
+        env:
+          VM_SSH_KEY: ${{ secrets.VM_SSH_KEY }}
+          VM_KNOWN_HOSTS: ${{ secrets.VM_KNOWN_HOSTS }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$VM_SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "$VM_KNOWN_HOSTS" > ~/.ssh/known_hosts
+      - name: Copy the backend and stack to the VM
+        env:
+          VM_HOST: ${{ vars.VM_HOST }}
+        run: |
+          rsync -az --delete -e "ssh -i ~/.ssh/deploy_key" \
+            --exclude .venv --exclude .env --exclude '__pycache__' \
+            backend deploy "deploy@${VM_HOST}:/opt/surveilled/"
+      - name: Build and restart
+        env:
+          VM_HOST: ${{ vars.VM_HOST }}
+          API_HOST: ${{ vars.API_HOST }}
+        run: |
+          ssh -i ~/.ssh/deploy_key "deploy@${VM_HOST}" \
+            "cd /opt/surveilled/deploy && API_HOST='${API_HOST}' docker compose up -d --build --remove-orphans && docker image prune -f"
+      - name: Check the API answers
+        env:
+          API_HOST: ${{ vars.API_HOST }}
+        run: |
+          today=$(date -u +%F)
+          for attempt in $(seq 1 30); do
+            if curl -fsS "https://${API_HOST}/api/daily/${today}" -o /dev/null; then
+              echo "API is up."
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "The API did not answer at https://${API_HOST}/api/daily/${today}" >&2
+          exit 1
+
+  deploy-frontend:
+    name: Deploy frontend
+    needs: [backend-checks, frontend-checks, changes, deploy-backend]
+    # Runs when the frontend changed, as long as the backend deploy didn't fail (skipped is fine).
+    if: >-
+      always() && github.ref == 'refs/heads/main'
+      && needs.changes.outputs.frontend == 'true'
+      && needs.backend-checks.result == 'success'
+      && needs.frontend-checks.result == 'success'
+      && (needs.deploy-backend.result == 'success' || needs.deploy-backend.result == 'skipped')
+    runs-on: ubuntu-24.04
+    environment: production
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm run build
+      - name: Send /api to the backend
+        env:
+          API_HOST: ${{ vars.API_HOST }}
+        # Netlify proxies /api/* to the VM, so the browser only ever talks to the site's own
+        # origin: the player cookie stays first-party and no CORS is needed.
+        run: |
+          printf '/api/*  https://%s/api/:splat  200\n' "$API_HOST" > dist/_redirects
+          cat dist/_redirects
+      - name: Publish to Netlify
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+        run: |
+          (cd dist && zip -qr ../site.zip .)
+          curl -fsS -X POST \
+            -H "Authorization: Bearer ${NETLIFY_AUTH_TOKEN}" \
+            -H "Content-Type: application/zip" \
+            --data-binary @site.zip \
+            "https://api.netlify.com/api/v1/sites/${NETLIFY_SITE_ID}/deploys" \
+            -o deploy.json
+          echo "Published deploy $(jq -r .id deploy.json) to $(jq -r .ssl_url deploy.json)"

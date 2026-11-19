@@ -3,18 +3,21 @@ import { AlarmOverlay } from "./components/AlarmOverlay.tsx";
 import { Board } from "./components/Board.tsx";
 import { Button } from "./components/Button.tsx";
 import { Controls } from "./components/Controls.tsx";
+import { CookieNotice } from "./components/CookieNotice.tsx";
 import { DevTools } from "./components/DevTools.tsx";
 import { HelpButton } from "./components/HelpButton.tsx";
 import { HowToPlay } from "./components/HowToPlay.tsx";
 import { LevelTabs } from "./components/LevelTabs.tsx";
 import { Masthead } from "./components/Masthead.tsx";
 import { MessageLine } from "./components/MessageLine.tsx";
+import { PageFooter } from "./components/PageFooter.tsx";
 import { Report } from "./components/Report.tsx";
 import { ShakeOnAlarm } from "./components/ShakeOnAlarm.tsx";
 import { Sheet } from "./components/Sheet.tsx";
 import { StartPage } from "./components/StartPage.tsx";
 import { StatusStrip } from "./components/StatusStrip.tsx";
 import { romanNumeral } from "./game/copy.ts";
+import { useCookieNotice } from "./hooks/useCookieNotice.ts";
 import { useDaily } from "./hooks/useDaily.ts";
 import { useRecordOpening } from "./hooks/useRecordOpening.ts";
 import { useReport } from "./hooks/useReport.ts";
@@ -27,11 +30,13 @@ import { useStanding } from "./hooks/useStanding.ts";
  * Once open, it is a single Ministry form in the order design.md fixes: masthead, level tabs,
  * brief, status strip (with the "?" for How to play), board, message line, controls. When a record
  * closes, the Archivist's report comes up on a sheet above the board; Show report brings it back.
+ * At the foot: the cookie notice until it is acknowledged, then the link to the privacy notice.
  */
 export default function App() {
   const play = useDaily();
   const { daily, level, game } = play;
   const opening = useRecordOpening(level);
+  const cookieNotice = useCookieNotice();
   const [helpOpen, setHelpOpen] = useState(false);
   const helpButton = useRef<HTMLButtonElement>(null);
   const levelNames = daily?.levels.map((l) => l.name) ?? [];
@@ -112,8 +117,14 @@ export default function App() {
             </>
           )}
           <MessageLine message={play.message} />
-          {game !== null && game.status === "play" && (
-            <Controls mode={play.mode} onModeChange={play.setMode} onHint={play.takeHint} />
+          {daily !== null && game !== null && game.status === "play" && (
+            <Controls
+              mode={play.mode}
+              onModeChange={play.setMode}
+              hintsLeft={daily.hintsLeft}
+              hintsPerDay={daily.hintsPerDay}
+              onHint={play.takeHint}
+            />
           )}
           {closed && (
             <Button primary={!report.open} aria-haspopup="dialog" onClick={report.show}>
@@ -125,6 +136,8 @@ export default function App() {
           )}
         </>
       )}
+      {cookieNotice.visible && <CookieNotice onAcknowledge={cookieNotice.acknowledge} />}
+      <PageFooter />
       {import.meta.env.DEV && <DevTools onReset={play.resetToday} />}
       <AlarmOverlay alarm={play.alarm} />
     </main>

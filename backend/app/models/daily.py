@@ -10,6 +10,9 @@ from app.models.puzzle import Puzzle
 
 LEVEL_COUNT = 4
 
+# Hints a player may take across the whole day, all four levels together.
+DAILY_HINTS = 3
+
 
 @dataclass(frozen=True)
 class DailyPuzzle:
@@ -63,6 +66,12 @@ class DailyRun:
         if last is not None and last.status is GameStatus.WON:
             return RunOutcome.TOPPLED
         return RunOutcome.PLAYING
+
+    @property
+    def hints_left(self) -> int:
+        """Hints the player may still take today. The allowance is shared by every level."""
+        used = sum(game.hints for game in self.games if game is not None)
+        return max(0, DAILY_HINTS - used)
 
     def state(self, level: int) -> LevelState:
         game = self.game(level)

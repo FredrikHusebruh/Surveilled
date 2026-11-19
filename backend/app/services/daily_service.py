@@ -13,7 +13,7 @@ from app.models.game import ClearOutcome, Game, GameStatus
 from app.models.hint import Hint
 from app.services import game_rules
 from app.services.daily_puzzles import DailyPuzzleBook
-from app.services.errors import DayNotOpenError, InvalidMoveError
+from app.services.errors import DayNotOpenError, HintsSpentError, InvalidMoveError
 from app.services.levels import get_level
 from app.services.results_log import log_record_closed
 from app.services.run_store import RunStore
@@ -107,7 +107,15 @@ class DailyService:
         return run
 
     def hint(self, player_id: str, day: date, level: int) -> tuple[DailyRun, Hint]:
-        return self._play(player_id, day, level, game_rules.take_hint)
+        """Take a hint on `level`. Raises HintsSpentError once the day's allowance is used up,
+        across all levels."""
+
+        def move(run: DailyRun, game: Game) -> tuple[Game, Hint]:
+            if game.status is GameStatus.PLAY and run.hints_left == 0:
+                raise HintsSpentError()
+            return game_rules.take_hint(game)
+
+        return self._play_in_run(player_id, day, level, move)
 
     def _play[T](
         self,
@@ -116,6 +124,17 @@ class DailyService:
         level: int,
         move: Callable[[Game], tuple[Game, T]],
     ) -> tuple[DailyRun, T]:
+        return self._play_in_run(player_id, day, level, lambda _, game: move(game))
+
+    def _play_in_run[T](
+        self,
+        player_id: str,
+        day: date,
+        level: int,
+        move: Callable[[DailyRun, Game], tuple[Game, T]],
+    ) -> tuple[DailyRun, T]:
+        """Apply `move` to the level's game under the store's lock. `move` also sees the whole run,
+        for rules that span the day."""
         self._require_open(day)
         get_level(level)
 
@@ -123,7 +142,7 @@ class DailyService:
             game = run.game(level)
             if game is None:
                 raise InvalidMoveError("That record has not been opened.")
-            updated, result = move(game)
+            updated, result = move(run, game)
             if game.status is GameStatus.PLAY and updated.status is not GameStatus.PLAY:
                 log_record_closed(day, level, updated)
             return run.with_game(level, updated), result

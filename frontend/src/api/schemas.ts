@@ -55,6 +55,8 @@ export const dailySchema = z.object({
   day: z.iso.date(),
   dayNumber: z.number().int(),
   outcome: z.enum(["playing", "toppled", "out"]),
+  hintsPerDay: z.number().int().nonnegative(),
+  hintsLeft: z.number().int().nonnegative(),
   levels: z.array(levelSchema).min(1),
 });
 export type Daily = z.infer<typeof dailySchema>;

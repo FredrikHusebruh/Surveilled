@@ -203,7 +203,7 @@ export const TUTORIAL: TutorialPage[] = [
       "Every record can be solved without guessing. If you are stuck, a deduction is waiting.",
       "Walls cut every row and column into stretches. Cells in the same stretch share that part of their count, so the difference between two of their numbers comes from the other direction.",
       "When no number helps, count the cameras still unmarked.",
-      "Hint outlines a number and a cell it proves. Hints are counted on your result card.",
+      "Hint outlines a number and a cell it proves. You get three hints a day, shared by all four records. Each one is counted on your result card.",
     ],
     demo: {
       kind: "board",

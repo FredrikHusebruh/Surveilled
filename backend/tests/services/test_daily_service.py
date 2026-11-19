@@ -3,16 +3,23 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 
-from app.models.daily import DailyRun, LevelState, RunOutcome
+from app.models.daily import DAILY_HINTS, DailyRun, LevelState, RunOutcome
 from app.models.game import ClearOutcome, GameStatus
 from app.services.daily_puzzles import DailyPuzzleBook
 from app.services.daily_service import DailyService
-from app.services.errors import DayNotOpenError, InvalidMoveError, UnknownLevelError
+from app.services.errors import (
+    DayNotOpenError,
+    HintsSpentError,
+    InvalidMoveError,
+    UnknownLevelError,
+)
 from app.services.run_store import RunStore
 from tests.conftest import TEST_CAMERAS
 from tests.factories import LAUNCH_DAY, TODAY, FakeClock
 
 PLAYER = "a" * 32
+# A safe hidden cell on the test board: marking it gives a wrong-mark hint.
+WRONG_MARK = 3
 
 
 def _file(service: DailyService, level: int, player: str = PLAYER) -> DailyRun:
@@ -141,3 +148,39 @@ def test_reset_forgets_the_day_for_that_player_only(service: DailyService) -> No
     assert run.outcome is RunOutcome.PLAYING
     assert run.state(1) is LevelState.OPEN
     assert service.run("b" * 32, TODAY).state(1) is LevelState.PLAYING
+
+
+def _take_hints(service: DailyService, level: int, count: int, player: str = PLAYER) -> DailyRun:
+    """Take `count` hints on an opened level. A wrong mark (cell 3 is safe) makes sure every hint
+    finds something, so each one counts; the mark is removed again afterwards."""
+    service.mark(player, TODAY, level, WRONG_MARK)
+    for _ in range(count):
+        service.hint(player, TODAY, level)
+    return service.mark(player, TODAY, level, WRONG_MARK)
+
+
+def test_hints_are_limited_per_day_across_levels(service: DailyService) -> None:
+    service.start(PLAYER, TODAY, 1)
+    _take_hints(service, 1, DAILY_HINTS - 1)
+    _file(service, 1)
+    service.start(PLAYER, TODAY, 2)
+    run = _take_hints(service, 2, 1)
+
+    assert run.hints_left == 0
+    service.mark(PLAYER, TODAY, 2, WRONG_MARK)
+    with pytest.raises(HintsSpentError):
+        service.hint(PLAYER, TODAY, 2)
+    game = service.run(PLAYER, TODAY).game(2)
+    assert game is not None
+    assert game.hints == 1
+
+
+def test_hints_left_belong_to_each_player(service: DailyService) -> None:
+    service.start(PLAYER, TODAY, 1)
+    _take_hints(service, 1, DAILY_HINTS)
+
+    other = "b" * 32
+    service.start(other, TODAY, 1)
+    run = _take_hints(service, 1, 1, player=other)
+
+    assert run.hints_left == DAILY_HINTS - 1

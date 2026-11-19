@@ -1,0 +1,14 @@
+# HTTPS for the API. Caddy gets and renews the certificate for API_HOST by itself.
+# Only /api is served: Netlify proxies the site's /api/* here, and nothing else needs to be public
+# (the generated API docs stay unreachable in production).
+{$API_HOST} {
+	encode zstd gzip
+
+	handle /api/* {
+		reverse_proxy api:8000
+	}
+
+	handle {
+		respond 404
+	}
+}

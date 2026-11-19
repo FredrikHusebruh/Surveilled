@@ -20,6 +20,8 @@ class DailyView(ApiModel):
     day: date
     day_number: int
     outcome: RunOutcome
+    hints_per_day: int
+    hints_left: int
     levels: list[LevelView]
 
 
