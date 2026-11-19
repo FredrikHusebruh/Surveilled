@@ -120,8 +120,10 @@ jobs:
           VM_HOST: ${{ vars.VM_HOST }}
           API_HOST: ${{ vars.API_HOST }}
         run: |
+          # deploy/.env holds API_HOST for every compose command on the server, including the
+          # logs and ps commands in deploy/README.md. rsync's --exclude .env keeps it across deploys.
           ssh -i ~/.ssh/deploy_key "deploy@${VM_HOST}" \
-            "cd /opt/surveilled/deploy && API_HOST='${API_HOST}' docker compose up -d --build --remove-orphans && docker image prune -f"
+            "cd /opt/surveilled/deploy && printf 'API_HOST=%s\n' '${API_HOST}' > .env && docker compose up -d --build --remove-orphans && docker image prune -f"
       - name: Check the API answers
         env:
           API_HOST: ${{ vars.API_HOST }}
