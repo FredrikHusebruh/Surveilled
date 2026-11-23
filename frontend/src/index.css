@@ -66,7 +66,9 @@
  * photosensitivity limit (WCAG 2.3.1), and never fill the screen with saturated red.
  */
 @theme {
-  --animate-thunk: thunk 0.22s cubic-bezier(0.3, 1.4, 0.6, 1) both;
+  --animate-thunk: thunk 0.3s linear both;
+  --animate-snap: snap 0.22s linear both;
+  --animate-thud: thud 0.2s cubic-bezier(0.3, 0, 0.3, 1) 0.15s both;
   --animate-blink: blink 1s steps(2) infinite;
   --animate-shake: shake 0.42s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
   --animate-alarm: alarm 0.9s ease-out;
@@ -76,6 +78,56 @@
   --animate-cover-open: cover-open 0.6s cubic-bezier(0.4, 0, 0.2, 1) 0.22s both;
   --animate-paper-lift: paper-lift 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) 0.75s both;
   --animate-unfold: unfold 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+
+  --animate-keystrike: keystrike 0.36s linear both;
+  --animate-platen: platen 0.14s cubic-bezier(0.3, 0, 0.3, 1) both;
+
+  /*
+   * A cell opening: the typebar hits. The number lands at once (no fade), squashed into the paper
+   * and heavy with fresh ink (a hard, unblurred ink spread), springs back past true, settles, and
+   * the ink dries back to the face's own weight.
+   */
+  @keyframes keystrike {
+    0% {
+      opacity: 0;
+    }
+    0.1% {
+      opacity: 1;
+      scale: 1.1 0.84;
+      translate: 0 7%;
+      text-shadow:
+        0.7px 0 0 currentColor,
+        -0.5px 0.4px 0 currentColor;
+      animation-timing-function: cubic-bezier(0.2, 0, 0, 1);
+    }
+    28% {
+      scale: 0.97 1.04;
+      translate: 0 -1.5%;
+      animation-timing-function: ease-out;
+    }
+    50% {
+      scale: 1;
+      translate: 0 0;
+    }
+    100% {
+      opacity: 1;
+      scale: 1;
+      translate: 0 0;
+      text-shadow:
+        0 0 0 currentColor,
+        0 0 0 currentColor;
+    }
+  }
+  /* The cell dips as the platen takes the blow. */
+  @keyframes platen {
+    0%,
+    100% {
+      translate: 0 0;
+    }
+    30% {
+      translate: 0 2px;
+    }
+  }
 
   /* The orders unfold from the top, like a letter opened out of its folds. */
   @keyframes unfold {
@@ -183,14 +235,64 @@
     }
   }
 
+  /* A rubber stamp comes down hard, overshoots into the paper and lifts away wet with ink. */
   @keyframes thunk {
-    from {
-      scale: 1.9;
+    0% {
+      scale: 2;
       opacity: 0;
+      animation-timing-function: cubic-bezier(0.5, 0, 0.9, 0.5);
     }
-    to {
+    55% {
+      scale: 0.92;
+      opacity: 1;
+      text-shadow:
+        0.8px 0 0 currentColor,
+        -0.6px 0.5px 0 currentColor;
+      animation-timing-function: cubic-bezier(0.2, 0, 0, 1);
+    }
+    75% {
+      scale: 1.03;
+    }
+    100% {
       scale: 1;
       opacity: 1;
+      text-shadow:
+        0 0 0 currentColor,
+        0 0 0 currentColor;
+    }
+  }
+  /* A camera mark snaps onto the cell with a twist, like a shutter clicking shut. */
+  @keyframes snap {
+    0% {
+      scale: 1.35;
+      rotate: -12deg;
+      opacity: 0;
+    }
+    0.1% {
+      opacity: 1;
+      animation-timing-function: cubic-bezier(0.2, 0, 0, 1);
+    }
+    45% {
+      scale: 0.9;
+      rotate: 3deg;
+    }
+    100% {
+      scale: 1;
+      rotate: 0deg;
+      opacity: 1;
+    }
+  }
+  /* The heavier dip a cell takes under a stamp. */
+  @keyframes thud {
+    0%,
+    100% {
+      translate: 0 0;
+    }
+    35% {
+      translate: 0 3px;
+    }
+    60% {
+      translate: 0 -0.5px;
     }
   }
   @keyframes blink {

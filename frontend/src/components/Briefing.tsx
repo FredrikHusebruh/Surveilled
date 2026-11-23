@@ -9,7 +9,8 @@ import {
   SIGN_OFF,
   briefingFor,
 } from "../game/briefings.ts";
-import { FOLDER } from "../game/copy.ts";
+import { FOLDER, TRAINING, forPointer } from "../game/copy.ts";
+import { usePointer } from "../hooks/usePointer.ts";
 import { useTypewriter } from "../hooks/useTypewriter.ts";
 import { Button } from "./Button.tsx";
 import { CoffeeStain } from "./CoffeeStain.tsx";
@@ -23,15 +24,36 @@ type Props = {
   brief: string;
   pending: boolean;
   onStart: () => void;
+  /** Put this level's training first: its rules are new to the player. */
+  trainingFirst: boolean;
+  /** Plays this level's training record. */
+  onTraining: () => void;
+  /** Goes straight to Start operation without training. */
+  onSkipTraining: () => void;
 };
 
 /**
  * The operation orders from inside the folder: a typewritten letter that unfolds, then types
  * itself out (tap the page to finish). The story first, then the orders for this level, then Start
- * operation, which is what starts the record's clock. Reading is never timed.
+ * operation, which is what starts the record's clock, beside Training, which plays this level's
+ * training record. While the level's rules are new, Start training comes first instead, with Skip
+ * training beside it. Reading is never timed.
  */
-export function Briefing({ dayNumber, level, numeral, total, name, brief, pending, onStart }: Props) {
+export function Briefing({
+  dayNumber,
+  level,
+  numeral,
+  total,
+  name,
+  brief,
+  pending,
+  onStart,
+  trainingFirst,
+  onTraining,
+  onSkipTraining,
+}: Props) {
   const { backstory, orders } = briefingFor(level);
+  const pointer = usePointer();
   const [unfolded, setUnfolded] = useState(() =>
     window.matchMedia("(prefers-reduced-motion: reduce)").matches,
   );
@@ -43,7 +65,7 @@ export function Briefing({ dayNumber, level, numeral, total, name, brief, pendin
     `From: ${SENDER}`,
     `To: ${RECIPIENT}`,
   ];
-  const numberedOrders = [brief, ...orders].map((order, index) => `${index + 1}. ${order}`);
+  const numberedOrders = [brief, ...orders].map((order, index) => `${index + 1}. ${forPointer(order, pointer)}`);
   const page = typeset([header, [SALUTATION, ...backstory], ["Orders"], numberedOrders, [`— ${SIGN_OFF}`]]);
   const [headerLines, letterLines, [ordersTitle], orderLines, [signOff]] = page.sections;
   const { typed, done, finish } = useTypewriter(page.total, unfolded);
@@ -96,9 +118,27 @@ export function Briefing({ dayNumber, level, numeral, total, name, brief, pendin
 
       <footer className="grid gap-(--space-3)">
         <p className="text-[12px] text-muted">{DESTROY_NOTE}</p>
-        <Button primary onClick={onStart} disabled={pending}>
-          Start operation
-        </Button>
+        <div className="flex gap-(--space-2)">
+          {trainingFirst ? (
+            <>
+              <Button primary className="flex-1" onClick={onTraining}>
+                {TRAINING.start}
+              </Button>
+              <Button className="flex-1" onClick={onSkipTraining}>
+                {TRAINING.skip}
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button primary className="flex-1" onClick={onStart} disabled={pending}>
+                Start operation
+              </Button>
+              <Button className="flex-1" onClick={onTraining}>
+                {TRAINING.open}
+              </Button>
+            </>
+          )}
+        </div>
       </footer>
 
       {/* Someone set their cup down on these orders: in the top corner, clear of the story. */}

@@ -3,10 +3,13 @@ import {
   clearResponseSchema,
   dailySchema,
   hintResponseSchema,
+  openResponseSchema,
   standingSchema,
   type ClearResponse,
   type Daily,
   type HintResponse,
+  type OpenResponse,
+  type ShowHintKind,
   type Standing,
 } from "./schemas.ts";
 
@@ -53,8 +56,14 @@ export function toggleStamp(day: string, level: number, cell: number): Promise<D
   return requestJson(levelPath(day, level, "stamp"), dailySchema, { method: "POST", body: { cell } });
 }
 
-export function requestHint(day: string, level: number): Promise<HintResponse> {
-  return requestJson(levelPath(day, level, "hint"), hintResponseSchema, { method: "POST" });
+/** The Camera or Safe cell hint: where a camera, or a safe cell, is. One of each a day. */
+export function requestHint(day: string, level: number, kind: ShowHintKind): Promise<HintResponse> {
+  return requestJson(levelPath(day, level, "hint"), hintResponseSchema, { method: "POST", body: { kind } });
+}
+
+/** The Open hint: open a cell the player chose. A camera is marked, with no strike. One a day. */
+export function openCell(day: string, level: number, cell: number): Promise<OpenResponse> {
+  return requestJson(levelPath(day, level, "open"), openResponseSchema, { method: "POST", body: { cell } });
 }
 
 function dayPath(day: string): string {

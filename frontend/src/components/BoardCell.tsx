@@ -1,8 +1,8 @@
+import type { ReactNode } from "react";
 import type { Cell } from "../api/schemas.ts";
+import { SWEEP_MS_PER_STEP } from "../game/board.ts";
 import { cellLabel } from "../game/copy.ts";
 import { CameraIcon } from "./CameraIcon.tsx";
-
-const SWEEP_MS_PER_STEP = 45;
 
 type Props = {
   cell: Cell;
@@ -13,31 +13,81 @@ type Props = {
   gazeDistance: number | undefined;
   selected: boolean;
   hinted: boolean;
+  /** How long after the move this cell is typed in (ms), when the last move opened it. */
+  revealDelay: number | undefined;
+  /** The last move marked this cell as a camera or stamped it False: only then does it animate. */
+  justMarked: boolean;
 };
 
 /**
  * One board cell. Each state has exactly one look (design.md, "The board"); interaction states
  * are outlines, never fills. Input is handled by the board, which reads `data-cell`.
  */
-export function BoardCell({ cell, index, lies, position, gazeDistance, selected, hinted }: Props) {
+export function BoardCell({
+  cell,
+  index,
+  lies,
+  position,
+  gazeDistance,
+  selected,
+  hinted,
+  revealDelay,
+  justMarked,
+}: Props) {
   const gazed = gazeDistance !== undefined;
+  const typed = revealDelay !== undefined;
+  const delay = revealDelay ?? (gazeDistance ?? 0) * SWEEP_MS_PER_STEP;
   return (
     <button
       type="button"
       data-cell={index}
       tabIndex={cell.kind === "wall" ? -1 : 0}
       aria-label={cellLabel(cell, lies, position)}
-      className={`${BASE} ${surface(cell, lies, gazed)} ${outline(selected, hinted)}`}
-      style={gazed ? { transitionDelay: `${gazeDistance * SWEEP_MS_PER_STEP}ms` } : undefined}
+      className={`${BASE} ${surface(cell, lies, gazed)} ${outline(selected, hinted)} ${jolt(cell, typed, justMarked)}`}
+      style={typed ? { transitionDelay: `${delay}ms`, animationDelay: `${delay}ms` } : gazed ? { transitionDelay: `${delay}ms` } : undefined}
     >
       {import.meta.env.DEV && cell.kind !== "wall" && <Cubicle onRed={cell.kind === "exposed"} furnished={cell.kind === "hidden"} />}
-      <CellContent cell={cell} lies={lies} />
+      {!typed ? (
+        <CellContent cell={cell} index={index} lies={lies} justMarked={justMarked} />
+      ) : (
+        <Keystrike delay={delay}>
+          <CellContent cell={cell} index={index} lies={lies} justMarked={false} />
+        </Keystrike>
+      )}
     </button>
   );
 }
 
+/**
+ * A cell opening (design rule 9): what was under the paper is typed in, `delay` after the move so
+ * a cascade ripples outward. It lands at once, pressed into the paper and heavy with fresh ink,
+ * springs back and settles; the cell itself jolts like the platen taking the blow
+ * (`animate-platen` on the cell). Until then it holds its first frame, so cells further out stay
+ * blank; the cell's own colour change waits the same delay.
+ */
+function Keystrike({ delay, children }: { delay: number; children: ReactNode }) {
+  return (
+    <span
+      className="relative grid size-full place-items-center motion-safe:animate-keystrike"
+      style={{ animationDelay: `${delay}ms` }}
+    >
+      {children}
+    </span>
+  );
+}
+
+/**
+ * The blow a cell takes when the last move landed on it: the platen's dip under a keystroke or a
+ * camera mark, the heavier thud of a False stamp.
+ */
+function jolt(cell: Cell, typed: boolean, justMarked: boolean): string {
+  if (typed) return "motion-safe:animate-platen";
+  if (!justMarked) return "";
+  return cell.kind === "given" ? "motion-safe:animate-thud" : "motion-safe:animate-platen";
+}
+
 const BASE =
-  "relative grid aspect-square place-items-center select-none touch-manipulation [-webkit-touch-callout:none] focus-visible:z-10 focus-visible:outline-3 focus-visible:-outline-offset-3 focus-visible:outline-party focus-visible:outline-solid motion-safe:transition-colors motion-safe:duration-180";
+  "relative grid aspect-square place-items-center select-none touch-manipulation [-webkit-touch-callout:none] focus-visible:z-10 focus-visible:outline-3 focus-visible:-outline-offset-3 focus-visible:outline-party focus-visible:outline-solid motion-safe:transition-[color,background-color,outline-color,box-shadow] motion-safe:duration-180";
 
 const RAISED = "cursor-pointer shadow-(--shadow-tile)";
 const PARTY_CORNER =
@@ -72,19 +122,25 @@ function outline(selected: boolean, hinted: boolean): string {
   return "";
 }
 
-function CellContent({ cell, lies }: { cell: Cell; lies: boolean }) {
+type ContentProps = { cell: Cell; index: number; lies: boolean; justMarked: boolean };
+
+function CellContent({ cell, index, lies, justMarked }: ContentProps) {
   switch (cell.kind) {
     case "given":
       return (
         <>
-          <Digit value={cell.value} party={lies} />
-          {cell.stamped && <FalseStamp />}
+          <Digit value={cell.value} index={index} party={lies} />
+          {cell.stamped && <FalseStamp fresh={justMarked} />}
         </>
       );
     case "observation":
-      return <Digit value={cell.value} party={false} />;
+      return <Digit value={cell.value} index={index} party={false} />;
     case "marked":
-      return <CameraIcon className={`relative size-[62%] ${cell.wrong ? "opacity-35" : ""}`} />;
+      return (
+        <CameraIcon
+          className={`relative size-[62%] ${cell.wrong ? "opacity-35" : ""} ${justMarked ? "motion-safe:animate-snap" : ""}`}
+        />
+      );
     case "exposed":
     case "revealed":
       return <CameraIcon className="relative size-[62%]" />;
@@ -134,21 +190,42 @@ function Cubicle({ onRed, furnished }: { onRed: boolean; furnished: boolean }) {
   );
 }
 
-/** A true number is always ink (design rule 3); only Party records are red. */
-function Digit({ value, party }: { value: number; party: boolean }) {
+/**
+ * How far each typed digit sits off true, like the uneven strike of a worn typebar. Picked by
+ * cell index, so a digit keeps its set when the board re-renders.
+ */
+const TYPE_SET = [
+  "rotate-[-2deg] translate-y-px",
+  "rotate-[1.5deg] -translate-x-px",
+  "rotate-0 -translate-y-px",
+  "rotate-[-1deg] translate-x-px",
+  "rotate-[2deg]",
+  "rotate-[0.5deg] translate-y-px -translate-x-px",
+] as const;
+
+/**
+ * A number on the record, typed by typewriter: the orders' own typewriter face and weight, set
+ * slightly off true. A true number is always ink (design rule 3); only Party records are red.
+ */
+function Digit({ value, index, party }: { value: number; index: number; party: boolean }) {
   return (
     <span
-      className={`relative font-condensed text-[length:calc(100cqi/var(--cols)*0.56)] leading-none font-extrabold tabular-nums ${party ? "text-party" : "text-ink"}`}
+      className={`relative font-typewriter text-[length:calc(100cqi/var(--cols)*0.6)] leading-none font-normal ${party ? "text-party" : "text-ink"} ${TYPE_SET[(index * 7 + 3) % TYPE_SET.length]}`}
     >
       {value}
     </span>
   );
 }
 
-/** The player's False stamp on a Party record. It thunks in when it first appears. */
-function FalseStamp() {
+/**
+ * The player's False stamp on a Party record. A `fresh` stamp, just put down, thunks in wet with
+ * ink; one already on the record when the board appears stays still.
+ */
+function FalseStamp({ fresh }: { fresh: boolean }) {
   return (
-    <span className="pointer-events-none absolute inset-x-[2px] bottom-[3px] -rotate-8 border-[1.5px] border-party bg-paper/70 text-center font-stencil text-[length:calc(100cqi/var(--cols)*0.2)] leading-[1.1] font-black tracking-[0.04em] text-party uppercase motion-safe:animate-thunk">
+    <span
+      className={`pointer-events-none absolute inset-x-[2px] bottom-[3px] -rotate-8 border-[1.5px] border-party bg-paper/70 text-center font-stencil text-[length:calc(100cqi/var(--cols)*0.2)] leading-[1.1] font-black tracking-[0.04em] text-party uppercase ${fresh ? "motion-safe:animate-thunk" : ""}`}
+    >
       False
     </span>
   );

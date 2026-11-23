@@ -1,6 +1,7 @@
 """FastAPI dependency providers.
 
-The run store and the record book are process-wide singletons; the service is cheap per request.
+The run store, the training store and the record book are process-wide singletons; services are
+cheap per request.
 """
 
 from functools import lru_cache
@@ -19,6 +20,11 @@ from app.services.standings_store import (
     SupabaseStandings,
     UnconfiguredStandings,
 )
+from app.services.training_service import (
+    TrainingService,
+    TrainingStore,
+    new_training_store,
+)
 
 
 @lru_cache
@@ -34,11 +40,29 @@ def get_puzzle_book() -> DailyPuzzleBook:
 def get_daily_service(
     store: Annotated[RunStore, Depends(get_run_store)],
     book: Annotated[DailyPuzzleBook, Depends(get_puzzle_book)],
+    settings: Annotated[Settings, Depends(get_settings)],
 ) -> DailyService:
-    return DailyService(store, book, launch_day=get_settings().launch_day)
+    """In dev mode the levels need not be played in order."""
+    return DailyService(
+        store, book, launch_day=settings.launch_day, levels_in_order=not settings.dev_mode
+    )
 
 
 DailyServiceDep = Annotated[DailyService, Depends(get_daily_service)]
+
+
+@lru_cache
+def get_training_store() -> TrainingStore:
+    return new_training_store(capacity=get_settings().max_active_trainings)
+
+
+def get_training_service(
+    store: Annotated[TrainingStore, Depends(get_training_store)],
+) -> TrainingService:
+    return TrainingService(store)
+
+
+TrainingServiceDep = Annotated[TrainingService, Depends(get_training_service)]
 
 
 def get_standings_store(settings: Annotated[Settings, Depends(get_settings)]) -> StandingsStore:

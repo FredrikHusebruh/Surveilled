@@ -106,7 +106,7 @@ def test_four_filed_levels_topple_the_government(client: TestClient) -> None:
     assert [d["outcome"] for d in days] == ["playing", "playing", "playing", "toppled"]
 
 
-def test_mark_stamp_and_hint(client: TestClient) -> None:
+def test_mark_stamp_and_hints(client: TestClient) -> None:
     for level in range(1, 3):
         _file(client, level)
     _start(client, 3)
@@ -114,29 +114,43 @@ def test_mark_stamp_and_hint(client: TestClient) -> None:
 
     marked = client.post(f"{url}/mark", json={"cell": 3}).json()
     stamped = client.post(f"{url}/stamp", json={"cell": 5}).json()
-    hinted = client.post(f"{url}/hint").json()
+    hinted = client.post(f"{url}/hint", json={"kind": "safe"}).json()
 
     assert _game(marked, 3)["cells"][3] == {"kind": "marked", "wrong": False}
     assert _game(stamped, 3)["cells"][5] == {"kind": "given", "value": 2, "stamped": True}
     assert hinted["hint"]["kind"] == "wrong_mark"
     assert _game(hinted["daily"], 3)["hints"] == 1
-    assert hinted["daily"]["hintsPerDay"] == 3
-    assert hinted["daily"]["hintsLeft"] == 2
+    assert hinted["daily"]["hintsAvailable"] == ["open", "camera"]
 
 
-def test_a_fourth_hint_in_a_day_is_refused(client: TestClient) -> None:
+def test_open_answers_with_its_outcome(client: TestClient) -> None:
     _start(client, 1)
-    # Cell 3 is safe, so marking it makes every hint point out the wrong mark, and each counts.
-    client.post(f"{DAY}/levels/1/mark", json={"cell": 3})
-    url = f"{DAY}/levels/1/hint"
-    for _ in range(3):
-        assert client.post(url).status_code == 200
+    url = f"{DAY}/levels/1/open"
 
-    refused = client.post(url)
+    opened = client.post(url, json={"cell": TEST_CAMERAS[0]}).json()
+
+    assert opened["outcome"] == "marked"
+    assert _game(opened["daily"], 1)["cells"][TEST_CAMERAS[0]] == {"kind": "marked", "wrong": False}
+    assert opened["daily"]["hintsAvailable"] == ["camera", "safe"]
+
+
+def test_a_second_hint_of_a_kind_in_a_day_is_refused(client: TestClient) -> None:
+    _start(client, 1)
+    url = f"{DAY}/levels/1/hint"
+    assert client.post(url, json={"kind": "camera"}).status_code == 200
+
+    refused = client.post(url, json={"kind": "camera"})
 
     assert refused.status_code == 409
-    assert "hints" in refused.json()["detail"]
-    assert client.get(DAY).json()["hintsLeft"] == 0
+    assert "Camera hint" in refused.json()["detail"]
+    assert client.get(DAY).json()["hintsAvailable"] == ["open", "safe"]
+
+
+def test_a_hint_must_name_its_kind(client: TestClient) -> None:
+    _start(client, 1)
+
+    assert client.post(f"{DAY}/levels/1/hint", json={"kind": "open"}).status_code == 422
+    assert client.post(f"{DAY}/levels/1/hint").status_code == 422
 
 
 def test_each_browser_has_its_own_day(client: TestClient) -> None:

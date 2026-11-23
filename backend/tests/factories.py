@@ -12,8 +12,9 @@ from app.models.board_spec import BoardSpec
 from app.models.daily import DailyPuzzle
 from app.models.game import Game, GameStatus
 from app.models.grade import Grade
+from app.models.hint import HintKind
 from app.models.puzzle import Board, Clue, Puzzle
-from app.services.puzzle.sight import compute_sight_lines
+from app.services.puzzle.layout import board_from_layout
 
 # Noon UTC on day 5 after launch, so the day before and after are open too.
 LAUNCH_DAY = date(2026, 11, 16)
@@ -66,13 +67,7 @@ TELESCREENS_SPECS = {
 
 
 def make_board(layout: Sequence[str], *, lies: bool = False) -> Board:
-    rows, cols = len(layout), len(layout[0])
-    cells = "".join(layout)
-    walls = tuple(ch == "#" for ch in cells)
-    cameras = tuple(ch == "C" for ch in cells)
-    sight = compute_sight_lines(rows, cols, walls)
-    truth = tuple(sum(cameras[j] for j in sight[i]) for i in range(rows * cols))
-    return Board(rows, cols, walls, cameras, sight, truth, lies)
+    return board_from_layout(layout, lies=lies)
 
 
 def make_puzzle(
@@ -99,7 +94,7 @@ class GameChanges(TypedDict, total=False):
     marks: frozenset[int]
     stamps: frozenset[int]
     exposed: frozenset[int]
-    hints: int
+    hints_used: tuple[HintKind, ...]
     status: GameStatus
     finished_at: float | None
 

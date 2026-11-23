@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   clearCell,
   fetchDaily,
+  openCell,
   requestHint,
   resetDay,
   startLevel,
@@ -9,39 +10,24 @@ import {
   toggleStamp,
 } from "../api/daily.ts";
 import type { Daily, Game, Level } from "../api/schemas.ts";
-import { isNumbered, isUnrevealed } from "../game/board.ts";
 import {
-  CASCADE_MESSAGE,
-  MARKED_CELL_MESSAGE,
   OUT_MESSAGE,
   PREPARING_MESSAGE,
   TOPPLED_MESSAGE,
   defaultMessage,
   failureMessage,
-  hintMessage,
-  seenMessage,
-  sightMessage,
 } from "../game/copy.ts";
+import { say, useBoardPlay, type BoardMoves, type Message } from "./useBoardPlay.ts";
 import { useLocalDay } from "./useLocalDay.ts";
 import { useSerialTasks } from "./useSerialTasks.ts";
 import { useStreak } from "./useStreak.ts";
 
-/** What a plain tap on a hidden cell does. */
-export type TapMode = "clear" | "mark";
-
-export type Message = { text: string; alert: boolean };
-
-/** A strike or a loss to dramatise. `id` changes with every event, so animations replay. */
-export type Alarm = { kind: "strike" | "loss"; id: number };
-
 type Session = { daily: Daily; receivedAt: number };
-
-const say = (text: string): Message => ({ text, alert: false });
 
 /**
  * The daily game controller. It holds the server's latest view of the player's day plus the
- * UI-only state around it (which level is shown, tap mode, selected number, hinted cell, message
- * line, alarms) and turns input into API calls. Every rule is enforced by the server.
+ * UI-only state around it (which level is shown and the message line) and turns input into API
+ * calls; playing the board itself is `useBoardPlay`. Every rule is enforced by the server.
  *
  * The day is the player's local date. When it turns over at midnight the controller moves to the
  * new day, unless a record is in progress: that one can still be finished, then the day moves on.
@@ -50,12 +36,7 @@ export function useDaily() {
   const today = useLocalDay();
   const [session, setSession] = useState<Session | null>(null);
   const [viewed, setViewed] = useState<number | null>(null);
-  const [mode, setMode] = useState<TapMode>("clear");
-  const [selected, setSelected] = useState<number | null>(null);
-  const [hinted, setHinted] = useState<number | null>(null);
   const [message, setMessage] = useState<Message>(say(PREPARING_MESSAGE));
-  const [alarm, setAlarm] = useState<Alarm | null>(null);
-  const alarmCount = useRef(0);
   const streak = useStreak(today);
   const { recordTopple } = streak;
 
@@ -80,6 +61,45 @@ export function useDaily() {
     setSession({ daily: next, receivedAt: Date.now() });
   }, []);
 
+  const moves = useMemo<BoardMoves>(() => {
+    const id = levelId ?? 0;
+    const gameIn = (next: Daily): Game => {
+      const played = next.levels[id - 1]?.game ?? null;
+      if (played === null) throw new Error("The played record is missing from the day.");
+      return played;
+    };
+    return {
+      clear: async (cell) => {
+        const { daily: next, outcome } = await clearCell(day, id, cell);
+        adopt(next);
+        return { game: gameIn(next), outcome };
+      },
+      mark: async (cell) => {
+        const next = await toggleMark(day, id, cell);
+        adopt(next);
+        return gameIn(next);
+      },
+      stamp: async (cell) => {
+        const next = await toggleStamp(day, id, cell);
+        adopt(next);
+        return gameIn(next);
+      },
+      hint: async (kind) => {
+        const { daily: next, hint } = await requestHint(day, id, kind);
+        adopt(next);
+        return { game: gameIn(next), hint };
+      },
+      open: async (cell) => {
+        const { daily: next, outcome } = await openCell(day, id, cell);
+        adopt(next);
+        return { game: gameIn(next), outcome };
+      },
+    };
+  }, [day, levelId, adopt]);
+
+  const board = useBoardPlay({ game, moves, run, setMessage, lostMessage: OUT_MESSAGE });
+  const { resetBoard } = board;
+
   useEffect(() => {
     dayRef.current = day;
     let current = true;
@@ -88,8 +108,7 @@ export function useDaily() {
         if (!current) return;
         adopt(loaded);
         setViewed(null);
-        setSelected(null);
-        setHinted(null);
+        resetBoard();
         setMessage(arrivalMessage(loaded, loaded.levels[defaultLevel(loaded) - 1]));
       },
       (error: unknown) => {
@@ -99,7 +118,7 @@ export function useDaily() {
     return () => {
       current = false;
     };
-  }, [day, adopt, reportFailure]);
+  }, [day, adopt, reportFailure, resetBoard]);
 
   const outcome = daily?.outcome;
   const loadedDay = daily?.day;
@@ -113,11 +132,10 @@ export function useDaily() {
       const target = daily.levels[id - 1];
       if (target.state === "locked") return;
       setViewed(id);
-      setSelected(null);
-      setHinted(null);
+      resetBoard();
       setMessage(arrivalMessage(daily, target));
     },
-    [daily],
+    [daily, resetBoard],
   );
 
   /** Opens a level and starts its clock. */
@@ -127,96 +145,13 @@ export function useDaily() {
         const next = await startLevel(day, id);
         adopt(next);
         setViewed(id);
-        setSelected(null);
-        setHinted(null);
+        resetBoard();
         const opened = next.levels[id - 1].game;
         setMessage(say(opened === null ? "" : defaultMessage(opened.lies)));
       });
     },
-    [day, run, adopt],
+    [day, run, adopt, resetBoard],
   );
-
-  const toggleSelect = useCallback(
-    (current: Game, cell: number) => {
-      const next = selected === cell ? null : cell;
-      setSelected(next);
-      setMessage(say(next === null ? defaultMessage(current.lies) : sightMessage(current, cell)));
-    },
-    [selected],
-  );
-
-  /** A mark-mode tap, long-press, right-click or `m`: stamps Party records, marks hidden cells. */
-  const markCell = useCallback(
-    (cell: number) => {
-      if (game === null || game.status !== "play" || levelId === null) return;
-      const target = game.cells[cell];
-      if (target.kind === "given" && game.lies) {
-        void run(async () => adopt(await toggleStamp(day, levelId, cell)));
-      } else if (isNumbered(target)) {
-        toggleSelect(game, cell);
-      } else if (isUnrevealed(target)) {
-        void run(async () => {
-          adopt(await toggleMark(day, levelId, cell));
-          if (hinted === cell) setHinted(null);
-        });
-      }
-    },
-    [game, levelId, day, hinted, run, adopt, toggleSelect],
-  );
-
-  /** A plain tap: selects numbers, otherwise clears or marks depending on the mode. */
-  const tapCell = useCallback(
-    (cell: number) => {
-      if (game === null || game.status !== "play" || levelId === null) return;
-      if (mode === "mark") {
-        markCell(cell);
-        return;
-      }
-      const target = game.cells[cell];
-      if (isNumbered(target)) {
-        toggleSelect(game, cell);
-      } else if (target.kind === "marked") {
-        setMessage(say(MARKED_CELL_MESSAGE));
-      } else if (target.kind === "hidden") {
-        void run(async () => {
-          const { daily: next, outcome: cleared } = await clearCell(day, levelId, cell);
-          adopt(next);
-          setHinted(null);
-          const after = next.levels[levelId - 1].game;
-          if (after === null) throw new Error("The cleared record is missing from the day.");
-          if (cleared === "seen") {
-            const lost = after.status === "lost";
-            alarmCount.current += 1;
-            setAlarm({ kind: lost ? "loss" : "strike", id: alarmCount.current });
-            setMessage(lost ? say(OUT_MESSAGE) : { text: seenMessage(after.strikes, after.maxStrikes), alert: true });
-            return;
-          }
-          setSelected(null);
-          if (after.status === "won") setMessage(say(""));
-          else setMessage(say(cleared === "cascade" ? CASCADE_MESSAGE : defaultMessage(after.lies)));
-        });
-      }
-    },
-    [game, levelId, mode, day, run, adopt, markCell, toggleSelect],
-  );
-
-  const takeHint = useCallback(() => {
-    if (game === null || game.status !== "play" || levelId === null) return;
-    void run(async () => {
-      const { daily: next, hint } = await requestHint(day, levelId);
-      adopt(next);
-      if (hint.kind === "clue") {
-        setSelected(hint.clueCell);
-        setHinted(hint.cell);
-      } else if (hint.kind === "deduction") {
-        setSelected(null);
-        setHinted(hint.cell);
-      } else if (hint.kind === "wrong_mark") {
-        setHinted(hint.cell);
-      }
-      setMessage(say(hintMessage(hint, game.lies)));
-    });
-  }, [game, levelId, day, run, adopt]);
 
   /** Developer tool: wipe today's progress, lock-out included. Needs SURVEILLED_DEV_MODE. */
   const resetToday = useCallback(() => {
@@ -224,11 +159,10 @@ export function useDaily() {
       const fresh = await resetDay(day);
       adopt(fresh);
       setViewed(null);
-      setSelected(null);
-      setHinted(null);
+      resetBoard();
       setMessage(say("Day reset."));
     });
-  }, [day, run, adopt]);
+  }, [day, run, adopt, resetBoard]);
 
   return {
     daily,
@@ -236,19 +170,20 @@ export function useDaily() {
     pending,
     level,
     game,
-    mode,
-    setMode,
-    selected,
-    hinted,
+    selected: board.selected,
+    hinted: board.hinted,
     message,
-    alarm,
+    alarm: board.alarm,
+    opening: board.opening,
+    reveal: board.reveal,
+    justMarked: board.justMarked,
     streakDays: streak.days,
     notify: setMessage,
     viewLevel,
     openLevel,
-    tapCell,
-    markCell,
-    takeHint,
+    tapCell: board.tapCell,
+    markCell: board.markCell,
+    takeHint: board.takeHint,
     resetToday,
   };
 }

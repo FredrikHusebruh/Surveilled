@@ -3,7 +3,7 @@ import { OPERATION, SENDER, SIGN_OFF, reportLetter } from "../game/briefings.ts"
 import { formatCountdown, romanNumeral, verdictMessage } from "../game/copy.ts";
 import { totalSeconds } from "../game/share.ts";
 import { useCountdownToMidnight } from "../hooks/useCountdown.ts";
-import type { Message } from "../hooks/useDaily.ts";
+import type { Message } from "../hooks/useBoardPlay.ts";
 import type { StandingState } from "../hooks/useStanding.ts";
 import { Button } from "./Button.tsx";
 import { CoffeeStain } from "./CoffeeStain.tsx";

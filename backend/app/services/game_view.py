@@ -5,7 +5,7 @@ held back while a record is open.
 """
 
 from app.models.game import MAX_STRIKES, Game, GameStatus
-from app.models.hint import ClueHint, DeductionHint, Hint, NoHint, WrongMarkHint
+from app.models.hint import ClueHint, DeductionHint, Hint, LocatedHint, NoHint, WrongMarkHint
 from app.schemas.games import (
     CellView,
     ClueHintView,
@@ -15,6 +15,7 @@ from app.schemas.games import (
     GivenCell,
     HiddenCell,
     HintView,
+    LocatedHintView,
     MarkedCell,
     NoHintView,
     ObservationCell,
@@ -60,6 +61,8 @@ def build_hint_view(hint: Hint) -> HintView:
             )
         case DeductionHint(cell=cell, is_camera=is_camera):
             return DeductionHintView(cell=cell, verdict=_verdict(is_camera))
+        case LocatedHint(cell=cell, is_camera=is_camera):
+            return LocatedHintView(cell=cell, verdict=_verdict(is_camera))
         case NoHint():
             return NoHintView()
 

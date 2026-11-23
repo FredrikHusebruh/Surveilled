@@ -6,10 +6,10 @@ Every move is validated here, never trusted.
 from dataclasses import replace
 
 from app.models.daily import DailyPuzzle
-from app.models.game import MAX_STRIKES, ClearOutcome, Game, GameStatus
-from app.models.hint import Hint, NoHint
+from app.models.game import MAX_STRIKES, ClearOutcome, Game, GameStatus, OpenOutcome
+from app.models.hint import Hint, HintKind, NoHint
 from app.services.errors import GameOverError, InvalidMoveError
-from app.services.hints import find_hint
+from app.services.hints import find_camera_hint, find_safe_hint
 
 
 def new_game(record: DailyPuzzle, now: float) -> Game:
@@ -38,6 +38,12 @@ def clear_cell(game: Game, cell: int, now: float) -> tuple[Game, ClearOutcome]:
             ClearOutcome.SEEN,
         )
 
+    return _clear_safe(game, cell, now)
+
+
+def _clear_safe(game: Game, cell: int, now: float) -> tuple[Game, ClearOutcome]:
+    """Clear a safe cell and everything a zero sees. Files the record once no safe cell is left."""
+    board = game.puzzle.board
     given = {clue.cell for clue in game.puzzle.clues}
     cleared = set(game.cleared)
     pending = [cell]
@@ -78,13 +84,34 @@ def toggle_stamp(game: Game, cell: int) -> Game:
     return replace(game, stamps=game.stamps ^ {cell})
 
 
-def take_hint(game: Game) -> tuple[Game, Hint]:
-    """Find a hint and count it against the record. Finding nothing costs nothing."""
+def take_hint(game: Game, kind: HintKind) -> tuple[Game, Hint]:
+    """Show where a camera (`CAMERA`) or a safe cell (`SAFE`) is, and count the hint against the
+    record. Finding nothing costs nothing. The Open hint is `open_cell`."""
     _require_open(game)
-    hint = find_hint(game)
+    match kind:
+        case HintKind.CAMERA:
+            hint = find_camera_hint(game)
+        case HintKind.SAFE:
+            hint = find_safe_hint(game)
+        case HintKind.OPEN:
+            raise InvalidMoveError("Choose the cell to open.")
     if isinstance(hint, NoHint):
         return game, hint
-    return replace(game, hints=game.hints + 1), hint
+    return replace(game, hints_used=(*game.hints_used, kind)), hint
+
+
+def open_cell(game: Game, cell: int, now: float) -> tuple[Game, OpenOutcome]:
+    """The Open hint: open a hidden or marked cell the player chose. A camera is marked, with no
+    strike; a safe cell loses any mark and is cleared like any other. Counts against the record."""
+    _require_open(game)
+    _require_unrevealed(game, cell)
+    used = (*game.hints_used, HintKind.OPEN)
+    if game.puzzle.board.cameras[cell]:
+        return replace(game, marks=game.marks | {cell}, hints_used=used), OpenOutcome.MARKED
+    unmarked = replace(game, marks=game.marks - {cell}, hints_used=used)
+    opened, outcome = _clear_safe(unmarked, cell, now)
+    cascade = outcome is ClearOutcome.CASCADE
+    return opened, OpenOutcome.CASCADE if cascade else OpenOutcome.CLEARED
 
 
 def _require_open(game: Game) -> None:

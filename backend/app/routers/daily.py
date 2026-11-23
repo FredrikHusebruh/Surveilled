@@ -6,9 +6,10 @@ from fastapi import APIRouter, Depends
 
 from app.dependencies import DailyServiceDep, StandingServiceDep, require_dev_mode
 from app.models.daily import DailyRun
+from app.models.hint import HintKind
 from app.player import PlayerDep
-from app.schemas.daily import ClearResponse, DailyView, HintResponse
-from app.schemas.games import CellRequest
+from app.schemas.daily import ClearResponse, DailyView, HintResponse, OpenResponse
+from app.schemas.games import CellRequest, HintRequest
 from app.schemas.standing import StandingView
 from app.services.daily_service import DailyService
 from app.services.daily_view import build_daily_view
@@ -81,13 +82,30 @@ def toggle_stamp(
 
 @router.post(
     "/{day}/levels/{level}/hint",
-    summary="Take a hint",
-    description="The easiest provable next step. Counts against the record unless none is found. "
-    "A player gets three hints a day across all levels; after that, 409.",
+    summary="Show a camera or a safe cell",
+    description="Points at a camera or a safe cell: one a single number proves if there is one, "
+    "else one the solver proves, else any. Counts against the record unless none is found. "
+    "A player gets one hint of each kind a day across all levels; a second answers 409.",
 )
-def take_hint(day: date, level: int, player: PlayerDep, service: DailyServiceDep) -> HintResponse:
-    run, hint = service.hint(player, day, level)
+def take_hint(
+    day: date, level: int, body: HintRequest, player: PlayerDep, service: DailyServiceDep
+) -> HintResponse:
+    run, hint = service.hint(player, day, level, HintKind(body.kind))
     return HintResponse(daily=_view(service, run), hint=build_hint_view(hint))
+
+
+@router.post(
+    "/{day}/levels/{level}/open",
+    summary="Open a cell (hint)",
+    description="The Open hint: opens a hidden or marked cell the player chose. A safe cell is "
+    "cleared; a camera is marked, with no strike. One a day across all levels; a second answers "
+    "409.",
+)
+def open_cell(
+    day: date, level: int, body: CellRequest, player: PlayerDep, service: DailyServiceDep
+) -> OpenResponse:
+    run, outcome = service.open(player, day, level, body.cell)
+    return OpenResponse(daily=_view(service, run), outcome=outcome)
 
 
 @router.post(
@@ -103,4 +121,6 @@ def record_standing(day: date, player: PlayerDep, standings: StandingServiceDep)
 
 
 def _view(service: DailyService, run: DailyRun) -> DailyView:
-    return build_daily_view(run, service.day_number(run.day), service.now())
+    return build_daily_view(
+        run, service.day_number(run.day), service.now(), levels_in_order=service.levels_in_order
+    )

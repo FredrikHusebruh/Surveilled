@@ -2,6 +2,7 @@ import pytest
 
 from app.models.daily import DailyRun
 from app.models.game import GameStatus
+from app.models.hint import HintKind
 from app.services.scoring import (
     HINT_PENALTY_SECONDS,
     STRIKE_PENALTY_SECONDS,
@@ -16,7 +17,11 @@ PUZZLE = make_puzzle(TEST_LAYOUT)
 
 def test_a_level_scores_its_time_plus_a_penalty_per_hint_and_per_strike() -> None:
     game = make_game(
-        PUZZLE, hints=2, exposed=frozenset({0}), status=GameStatus.WON, finished_at=START_TIME + 300
+        PUZZLE,
+        hints_used=(HintKind.CAMERA, HintKind.OPEN),
+        exposed=frozenset({0}),
+        status=GameStatus.WON,
+        finished_at=START_TIME + 300,
     )
 
     score = level_score(1, game)

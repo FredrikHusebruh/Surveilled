@@ -18,6 +18,12 @@ class CellRequest(ApiModel):
     cell: int = Field(ge=0, description="Row-major cell index.")
 
 
+class HintRequest(ApiModel):
+    kind: Literal["camera", "safe"] = Field(
+        description="Show where a camera is, or where a safe cell is. Open is its own request."
+    )
+
+
 class WallCell(ApiModel):
     kind: Literal["wall"] = "wall"
 
@@ -101,11 +107,17 @@ class DeductionHintView(ApiModel):
     verdict: Verdict
 
 
+class LocatedHintView(ApiModel):
+    kind: Literal["located"] = "located"
+    cell: int
+    verdict: Verdict
+
+
 class NoHintView(ApiModel):
     kind: Literal["none"] = "none"
 
 
 type HintView = Annotated[
-    WrongMarkHintView | ClueHintView | DeductionHintView | NoHintView,
+    WrongMarkHintView | ClueHintView | DeductionHintView | LocatedHintView | NoHintView,
     Field(discriminator="kind"),
 ]

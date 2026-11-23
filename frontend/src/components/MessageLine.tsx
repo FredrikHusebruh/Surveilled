@@ -1,4 +1,4 @@
-import type { Message } from "../hooks/useDaily.ts";
+import type { Message } from "../hooks/useBoardPlay.ts";
 
 /** The line under the board where every message goes. Alerts use --party-text for contrast on concrete. */
 export function MessageLine({ message }: { message: Message }) {

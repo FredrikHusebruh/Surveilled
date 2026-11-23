@@ -3,6 +3,7 @@
 from dataclasses import dataclass
 from enum import StrEnum
 
+from app.models.hint import HintKind
 from app.models.puzzle import Puzzle
 
 MAX_STRIKES = 3
@@ -25,6 +26,15 @@ class ClearOutcome(StrEnum):
     SEEN = "seen"
 
 
+class OpenOutcome(StrEnum):
+    """What the Open hint did to the cell the player chose: cleared it (`cascade` for a zero), or
+    found a camera and marked it, with no strike."""
+
+    CLEARED = "cleared"
+    CASCADE = "cascade"
+    MARKED = "marked"
+
+
 @dataclass(frozen=True)
 class Game:
     """Server-side state of one record. Never sent as is: it holds the camera positions.
@@ -40,13 +50,18 @@ class Game:
     marks: frozenset[int] = frozenset()
     stamps: frozenset[int] = frozenset()
     exposed: frozenset[int] = frozenset()
-    hints: int = 0
+    hints_used: tuple[HintKind, ...] = ()
     status: GameStatus = GameStatus.PLAY
     finished_at: float | None = None
 
     @property
     def strikes(self) -> int:
         return len(self.exposed)
+
+    @property
+    def hints(self) -> int:
+        """Hints taken on this record, of any kind. Each costs the same in the score."""
+        return len(self.hints_used)
 
     def elapsed_seconds(self, now: float) -> int:
         """Whole seconds since the record started, frozen once it is filed or lost."""

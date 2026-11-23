@@ -35,6 +35,11 @@ class Settings(BaseSettings):
         ge=1,
         description="Player-days kept in memory before the least recently used is dropped.",
     )
+    max_active_trainings: int = Field(
+        default=20_000,
+        ge=1,
+        description="Training games kept in memory before the least recently used is dropped.",
+    )
 
     supabase_url: HttpUrl | None = Field(
         default=None,

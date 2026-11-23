@@ -14,7 +14,7 @@ export const PRIVACY_CONTACT = {
 };
 
 /** Shown at the top of the notice. Change it whenever a section changes. */
-export const PRIVACY_UPDATED = "18 November 2026";
+export const PRIVACY_UPDATED = "23 November 2026";
 
 export const PRIVACY_PATH = "/privacy.html";
 
@@ -44,7 +44,7 @@ export const PRIVACY_SECTIONS: PrivacySection[] = [
   {
     title: "The cookie",
     paragraphs: [
-      "When you open the game, our server sets one cookie, sv_player. It holds a random number that lets the server recognise your browser, so it can keep your game: your moves, your clock, your strikes and hints, and the rule that each level gets one attempt a day.",
+      "When you open the game, our server sets one cookie, sv_player. It holds a random number that lets the server recognise your browser, so it can keep your game: your moves, your clock, your strikes and hints, and the rule that each level gets one attempt a day. It also keeps your training records while you play them.",
       "The cookie contains no name, email address or other details about you. Page scripts can't read it, and it is only sent to the game's own server. It lasts 400 days unless you delete it.",
       "The game can't work without it, so it is a strictly necessary cookie and does not need your consent. There are no other cookies: no tracking, advertising or analytics.",
     ],
@@ -53,10 +53,10 @@ export const PRIVACY_SECTIONS: PrivacySection[] = [
     title: "What we store, and for how long",
     paragraphs: [],
     items: [
-      "Your games: kept only in the game server's memory, never written to disk. They are gone when the server restarts, which happens whenever the game is updated, or sooner when room is needed for newer games.",
+      "Your games, training records included: kept only in the game server's memory, never written to disk. Training records are never scored, ranked or logged. They are gone when the server restarts, which happens whenever the game is updated, or sooner when room is needed for newer games.",
       "Your standing: when your day ends, the server stores one row in our database with the date, how many levels you filed and your score. It is linked to a one-way hash of your cookie's number, never the number itself. These rows are deleted automatically after one year.",
       "Anonymous results: for each finished level the server logs the day, level, time, strikes and hints, with nothing that identifies you. We use them to tune how hard the puzzles are.",
-      "In your browser only: your toppling streak, and that you have acknowledged the cookie notice. These stay in your browser's local storage and are never sent to us.",
+      "In your browser only: your toppling streak, that you have acknowledged the cookie notice, which training records you have filed or skipped, and whether you turned the typewriter sound off. These stay in your browser's local storage and are never sent to us.",
     ],
   },
   {

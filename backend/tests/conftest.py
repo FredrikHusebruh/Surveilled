@@ -11,7 +11,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.config import Settings, get_settings
-from app.dependencies import get_daily_service
+from app.dependencies import get_daily_service, get_training_service
 from app.main import app
 from app.models.daily import DailyPuzzle
 from app.models.level import Level
@@ -20,6 +20,7 @@ from app.services import daily_puzzles
 from app.services.daily_puzzles import DailyPuzzleBook
 from app.services.daily_service import DailyService
 from app.services.run_store import RunStore
+from app.services.training_service import TrainingService, new_training_store
 from tests.factories import LAUNCH_DAY, FakeClock, make_puzzle, make_record
 
 # Every test level is the same tiny board: cameras at 0, 1 and 2, so clearing them loses and
@@ -69,9 +70,18 @@ def settings() -> Settings:
 
 
 @pytest.fixture
-def client(service: DailyService, settings: Settings) -> Iterator[TestClient]:
-    """The real app, with the daily service swapped for one on fake records and a fake clock."""
+def training_service(clock: FakeClock) -> TrainingService:
+    return TrainingService(new_training_store(capacity=50), clock=clock)
+
+
+@pytest.fixture
+def client(
+    service: DailyService, training_service: TrainingService, settings: Settings
+) -> Iterator[TestClient]:
+    """The real app, with the daily service swapped for one on fake records and a fake clock, and
+    a fresh training store."""
     app.dependency_overrides[get_daily_service] = lambda: service
+    app.dependency_overrides[get_training_service] = lambda: training_service
     app.dependency_overrides[get_settings] = lambda: settings
     try:
         yield TestClient(app)

@@ -3,8 +3,9 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 
-from app.models.daily import DAILY_HINTS, DailyRun, LevelState, RunOutcome
+from app.models.daily import DailyRun, LevelState, RunOutcome
 from app.models.game import ClearOutcome, GameStatus
+from app.models.hint import HintKind
 from app.services.daily_puzzles import DailyPuzzleBook
 from app.services.daily_service import DailyService
 from app.services.errors import (
@@ -72,6 +73,33 @@ def test_levels_open_in_order(service: DailyService) -> None:
 
     assert run.state(1) is LevelState.FILED
     assert run.state(2) is LevelState.OPEN
+
+
+def test_dev_mode_opens_any_level_out_of_order(
+    fake_records: None, store: RunStore, clock: FakeClock
+) -> None:
+    dev = DailyService(
+        store, DailyPuzzleBook("x" * 16), launch_day=LAUNCH_DAY, clock=clock, levels_in_order=False
+    )
+
+    run = dev.start(PLAYER, TODAY, 3)
+
+    assert run.state(3) is LevelState.PLAYING
+    assert [run.state(level, in_order=False) for level in (1, 2, 4)] == [LevelState.OPEN] * 3
+    assert run.state(2) is LevelState.LOCKED
+
+
+def test_filing_only_the_last_level_does_not_topple(
+    fake_records: None, store: RunStore, clock: FakeClock
+) -> None:
+    dev = DailyService(
+        store, DailyPuzzleBook("x" * 16), launch_day=LAUNCH_DAY, clock=clock, levels_in_order=False
+    )
+
+    run = _file(dev, 4)
+
+    assert run.state(4) is LevelState.FILED
+    assert run.outcome is RunOutcome.PLAYING
 
 
 def test_starting_twice_keeps_the_first_clock(service: DailyService, clock: FakeClock) -> None:
@@ -150,37 +178,44 @@ def test_reset_forgets_the_day_for_that_player_only(service: DailyService) -> No
     assert service.run("b" * 32, TODAY).state(1) is LevelState.PLAYING
 
 
-def _take_hints(service: DailyService, level: int, count: int, player: str = PLAYER) -> DailyRun:
-    """Take `count` hints on an opened level. A wrong mark (cell 3 is safe) makes sure every hint
-    finds something, so each one counts; the mark is removed again afterwards."""
-    service.mark(player, TODAY, level, WRONG_MARK)
-    for _ in range(count):
-        service.hint(player, TODAY, level)
-    return service.mark(player, TODAY, level, WRONG_MARK)
-
-
-def test_hints_are_limited_per_day_across_levels(service: DailyService) -> None:
+def test_a_player_gets_one_hint_of_each_kind_a_day_across_levels(service: DailyService) -> None:
     service.start(PLAYER, TODAY, 1)
-    _take_hints(service, 1, DAILY_HINTS - 1)
+    service.hint(PLAYER, TODAY, 1, HintKind.CAMERA)
+    run, _ = service.open(PLAYER, TODAY, 1, 6)
+    assert run.hints_available == (HintKind.SAFE,)
     _file(service, 1)
     service.start(PLAYER, TODAY, 2)
-    run = _take_hints(service, 2, 1)
 
-    assert run.hints_left == 0
-    service.mark(PLAYER, TODAY, 2, WRONG_MARK)
-    with pytest.raises(HintsSpentError):
-        service.hint(PLAYER, TODAY, 2)
-    game = service.run(PLAYER, TODAY).game(2)
+    with pytest.raises(HintsSpentError, match="Camera"):
+        service.hint(PLAYER, TODAY, 2, HintKind.CAMERA)
+    with pytest.raises(HintsSpentError, match="Open"):
+        service.open(PLAYER, TODAY, 2, 6)
+    run, _ = service.hint(PLAYER, TODAY, 2, HintKind.SAFE)
+
+    assert run.hints_available == ()
+    game = run.game(2)
     assert game is not None
-    assert game.hints == 1
+    assert game.hints_used == (HintKind.SAFE,)
 
 
-def test_hints_left_belong_to_each_player(service: DailyService) -> None:
+def test_open_marks_a_camera_on_the_days_record(service: DailyService) -> None:
     service.start(PLAYER, TODAY, 1)
-    _take_hints(service, 1, DAILY_HINTS)
+
+    run, outcome = service.open(PLAYER, TODAY, 1, TEST_CAMERAS[0])
+
+    game = run.game(1)
+    assert game is not None
+    assert game.marks == {TEST_CAMERAS[0]}
+    assert game.strikes == 0
+    assert outcome.value == "marked"
+
+
+def test_hints_belong_to_each_player(service: DailyService) -> None:
+    service.start(PLAYER, TODAY, 1)
+    for kind in (HintKind.CAMERA, HintKind.SAFE):
+        service.hint(PLAYER, TODAY, 1, kind)
 
     other = "b" * 32
-    service.start(other, TODAY, 1)
-    run = _take_hints(service, 1, 1, player=other)
+    run = service.start(other, TODAY, 1)
 
-    assert run.hints_left == DAILY_HINTS - 1
+    assert run.hints_available == tuple(HintKind)

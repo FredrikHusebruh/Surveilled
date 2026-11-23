@@ -51,12 +51,18 @@ export const levelSchema = z.object({
 });
 export type Level = z.infer<typeof levelSchema>;
 
+/** The three hints: Open opens a cell the player chooses; Camera and Safe show one of each. */
+export const hintKindSchema = z.enum(["open", "camera", "safe"]);
+export type HintKind = z.infer<typeof hintKindSchema>;
+/** The hints that show a cell; Open is a move on a cell instead. */
+export type ShowHintKind = Exclude<HintKind, "open">;
+
 export const dailySchema = z.object({
   day: z.iso.date(),
   dayNumber: z.number().int(),
   outcome: z.enum(["playing", "toppled", "out"]),
-  hintsPerDay: z.number().int().nonnegative(),
-  hintsLeft: z.number().int().nonnegative(),
+  /** The kinds of hint left today: one of each a day, shared by all four records. */
+  hintsAvailable: z.array(hintKindSchema),
   levels: z.array(levelSchema).min(1),
 });
 export type Daily = z.infer<typeof dailySchema>;
@@ -67,6 +73,7 @@ export const clearResponseSchema = z.object({
   outcome: z.enum(["cleared", "cascade", "seen"]),
 });
 export type ClearResponse = z.infer<typeof clearResponseSchema>;
+export type ClearOutcome = ClearResponse["outcome"];
 
 const verdictSchema = z.enum(["safe", "camera"]);
 
@@ -82,12 +89,51 @@ export const hintSchema = z.discriminatedUnion("kind", [
     hiddenSeen: z.number().int(),
   }),
   z.object({ kind: z.literal("deduction"), cell: z.number().int(), verdict: verdictSchema }),
+  z.object({ kind: z.literal("located"), cell: z.number().int(), verdict: verdictSchema }),
   z.object({ kind: z.literal("none") }),
 ]);
 export type Hint = z.infer<typeof hintSchema>;
 
 export const hintResponseSchema = z.object({ daily: dailySchema, hint: hintSchema });
 export type HintResponse = z.infer<typeof hintResponseSchema>;
+
+export const openResponseSchema = z.object({
+  daily: dailySchema,
+  outcome: z.enum(["cleared", "cascade", "marked"]),
+});
+export type OpenResponse = z.infer<typeof openResponseSchema>;
+export type OpenOutcome = OpenResponse["outcome"];
+
+/** A guided move in a training record: the cell to try a new rule on, and what to do with it. */
+export const guideSchema = z.object({
+  cell: z.number().int().nonnegative(),
+  action: z.enum(["select", "clear", "mark", "stamp"]),
+});
+export type Guide = z.infer<typeof guideSchema>;
+export type GuideAction = Guide["action"];
+
+/** A training record: a practice game played with the real rules, opened by its guided moves. */
+export const trainingSchema = z.object({
+  level: z.number().int().positive(),
+  game: gameSchema,
+  guides: z.array(guideSchema),
+});
+export type Training = z.infer<typeof trainingSchema>;
+
+export const trainingClearResponseSchema = z.object({
+  training: trainingSchema,
+  outcome: clearResponseSchema.shape.outcome,
+});
+export type TrainingClearResponse = z.infer<typeof trainingClearResponseSchema>;
+
+export const trainingHintResponseSchema = z.object({ training: trainingSchema, hint: hintSchema });
+export type TrainingHintResponse = z.infer<typeof trainingHintResponseSchema>;
+
+export const trainingOpenResponseSchema = z.object({
+  training: trainingSchema,
+  outcome: openResponseSchema.shape.outcome,
+});
+export type TrainingOpenResponse = z.infer<typeof trainingOpenResponseSchema>;
 
 const levelScoreSchema = z.object({
   level: z.number().int().min(1),

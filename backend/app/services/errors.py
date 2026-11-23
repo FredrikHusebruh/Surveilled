@@ -1,5 +1,9 @@
 """Domain errors. Their messages are written for players and are safe to return to the client."""
 
+from typing import ClassVar
+
+from app.models.hint import HintKind
+
 
 class DomainError(Exception):
     """Base for errors caused by a request the rules refuse, as opposed to bugs."""
@@ -32,8 +36,17 @@ class RankingsUnavailableError(DomainError):
 
 
 class HintsSpentError(InvalidMoveError):
-    def __init__(self) -> None:
-        super().__init__("You have used today's hints. New hints come with tomorrow's records.")
+    _NAMES: ClassVar[dict[HintKind, str]] = {
+        HintKind.OPEN: "Open",
+        HintKind.CAMERA: "Camera",
+        HintKind.SAFE: "Safe cell",
+    }
+
+    def __init__(self, kind: HintKind) -> None:
+        super().__init__(
+            f"You have used today's {self._NAMES[kind]} hint. "
+            "New hints come with tomorrow's records."
+        )
 
 
 class GameOverError(InvalidMoveError):

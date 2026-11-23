@@ -3,7 +3,7 @@ import type { Daily, Standing } from "../api/schemas.ts";
 import { SHARE_COPIED, SHARE_FAILED } from "../game/copy.ts";
 import { shareText } from "../game/share.ts";
 import { shareOrCopy } from "../lib/shareSheet.ts";
-import type { Message } from "./useDaily.ts";
+import type { Message } from "./useBoardPlay.ts";
 
 /**
  * The day's result card once the day is over (null before), and the action that shares it.

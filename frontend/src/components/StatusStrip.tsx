@@ -10,15 +10,18 @@ const RATING_STEPS = [1, 2, 3, 4, 5] as const;
 type Props = {
   game: Game;
   receivedAt: number;
-  /** Shown at the right end of the clock row: the "?" for How to play. */
+  /** Shown at the right end of the clock row: the "?" for the rules. */
   aside?: ReactNode;
+  /** A training record: untimed and unrated, so only the counts row shows. */
+  training?: boolean;
 };
 
 /**
  * Between two ink rules: unmarked cameras, strikes and difficulty on the first row; the clock and
  * `aside` on the second. Fixed rows, so the clock and the "?" sit in the same place at every width.
+ * A training record shows only unmarked cameras and strikes.
  */
-export function StatusStrip({ game, receivedAt, aside }: Props) {
+export function StatusStrip({ game, receivedAt, aside, training = false }: Props) {
   return (
     <section aria-label="Record status" className="grid gap-(--space-2) border-y border-ink py-(--space-2) text-[13px]">
       <div className="flex flex-wrap items-center justify-between gap-(--space-3)">
@@ -33,19 +36,23 @@ export function StatusStrip({ game, receivedAt, aside }: Props) {
             ))}
           </span>
         </span>
-        <span className="tracking-[1px]" role="img" aria-label={`Difficulty ${game.rating} of 5`}>
-          Difficulty{" "}
-          {RATING_STEPS.map((step) => (
-            <span key={step} className={step <= game.rating ? "text-ink" : "text-muted opacity-40"}>
-              &#9632;
-            </span>
-          ))}
-        </span>
+        {!training && (
+          <span className="tracking-[1px]" role="img" aria-label={`Difficulty ${game.rating} of 5`}>
+            Difficulty{" "}
+            {RATING_STEPS.map((step) => (
+              <span key={step} className={step <= game.rating ? "text-ink" : "text-muted opacity-40"}>
+                &#9632;
+              </span>
+            ))}
+          </span>
+        )}
       </div>
-      <div className="flex items-center justify-between gap-(--space-3)">
-        <Clock game={game} receivedAt={receivedAt} />
-        {aside}
-      </div>
+      {!training && (
+        <div className="flex items-center justify-between gap-(--space-3)">
+          <Clock game={game} receivedAt={receivedAt} />
+          {aside}
+        </div>
+      )}
     </section>
   );
 }

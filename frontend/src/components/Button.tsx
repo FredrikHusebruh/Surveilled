@@ -3,11 +3,17 @@ import type { ComponentPropsWithRef } from "react";
 type Props = ComponentPropsWithRef<"button"> & {
   /** The view's single primary action: Party red. Use at most one per view (design.md). */
   primary?: boolean;
+  /** A toggle that is on (with `aria-pressed`): ink with paper text. */
+  pressed?: boolean;
 };
 
 /** The form button: square, paper, 1.5px ink border, bold typewriter. */
-export function Button({ primary = false, className = "", type = "button", ...props }: Props) {
-  const tone = primary ? "border-party bg-party text-paper" : "border-ink bg-paper text-ink";
+export function Button({ primary = false, pressed = false, className = "", type = "button", ...props }: Props) {
+  const tone = primary
+    ? "border-party bg-party text-paper"
+    : pressed
+      ? "border-ink bg-ink text-paper"
+      : "border-ink bg-paper text-ink";
   return (
     <button
       type={type}

@@ -9,8 +9,8 @@ from collections.abc import Callable
 from datetime import UTC, date, datetime, timedelta
 
 from app.models.daily import DailyRun, LevelState, RunOutcome
-from app.models.game import ClearOutcome, Game, GameStatus
-from app.models.hint import Hint
+from app.models.game import ClearOutcome, Game, GameStatus, OpenOutcome
+from app.models.hint import Hint, HintKind
 from app.services import game_rules
 from app.services.daily_puzzles import DailyPuzzleBook
 from app.services.errors import DayNotOpenError, HintsSpentError, InvalidMoveError
@@ -27,6 +27,7 @@ class DailyService:
     """Coordinates the daily records, the rules and run storage.
 
     `clock` returns epoch seconds and is injectable for tests; it also decides what "today" is.
+    `levels_in_order` is off only in dev mode, so a developer can open any level straight away.
     """
 
     def __init__(
@@ -35,11 +36,14 @@ class DailyService:
         book: DailyPuzzleBook,
         launch_day: date,
         clock: Callable[[], float] = time.time,
+        *,
+        levels_in_order: bool = True,
     ) -> None:
         self._store = store
         self._book = book
         self._launch_day = launch_day
         self._clock = clock
+        self.levels_in_order = levels_in_order
 
     def now(self) -> float:
         return self._clock()
@@ -66,13 +70,13 @@ class DailyService:
         self._require_open(day)
         get_level(level)
         current = self._store.get(player_id, day)
-        if current.state(level) is not LevelState.OPEN:
+        if self._state(current, level) is not LevelState.OPEN:
             return self._require_state_allows_start(current, level)
         # Build (or fetch) the record before taking the store's lock: building can take seconds.
         record = self._book.get(day, level)
 
         def transition(run: DailyRun) -> tuple[DailyRun, None]:
-            if run.state(level) is not LevelState.OPEN:
+            if self._state(run, level) is not LevelState.OPEN:
                 return self._require_state_allows_start(run, level), None
             return run.with_game(level, game_rules.new_game(record, self.now())), None
 
@@ -106,16 +110,32 @@ class DailyService:
         )
         return run
 
-    def hint(self, player_id: str, day: date, level: int) -> tuple[DailyRun, Hint]:
-        """Take a hint on `level`. Raises HintsSpentError once the day's allowance is used up,
-        across all levels."""
+    def hint(self, player_id: str, day: date, level: int, kind: HintKind) -> tuple[DailyRun, Hint]:
+        """Show where a camera or a safe cell is on `level`. Raises HintsSpentError once that kind
+        was used today, on any level: the player gets one of each a day."""
 
         def move(run: DailyRun, game: Game) -> tuple[Game, Hint]:
-            if game.status is GameStatus.PLAY and run.hints_left == 0:
-                raise HintsSpentError()
-            return game_rules.take_hint(game)
+            self._require_hint_left(run, game, kind)
+            return game_rules.take_hint(game, kind)
 
         return self._play_in_run(player_id, day, level, move)
+
+    def open(
+        self, player_id: str, day: date, level: int, cell: int
+    ) -> tuple[DailyRun, OpenOutcome]:
+        """The Open hint on `level`: open the chosen cell, marking it if it is a camera. One a day,
+        across all levels."""
+
+        def move(run: DailyRun, game: Game) -> tuple[Game, OpenOutcome]:
+            self._require_hint_left(run, game, HintKind.OPEN)
+            return game_rules.open_cell(game, cell, self.now())
+
+        return self._play_in_run(player_id, day, level, move)
+
+    @staticmethod
+    def _require_hint_left(run: DailyRun, game: Game, kind: HintKind) -> None:
+        if game.status is GameStatus.PLAY and kind not in run.hints_available:
+            raise HintsSpentError(kind)
 
     def _play[T](
         self,
@@ -148,6 +168,9 @@ class DailyService:
             return run.with_game(level, updated), result
 
         return self._store.update(player_id, day, transition)
+
+    def _state(self, run: DailyRun, level: int) -> LevelState:
+        return run.state(level, in_order=self.levels_in_order)
 
     def _require_open(self, day: date) -> None:
         if day not in self.open_days():

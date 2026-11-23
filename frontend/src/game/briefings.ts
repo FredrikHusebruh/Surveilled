@@ -1,3 +1,5 @@
+import { MARK_GESTURE, type PointerText } from "./copy.ts";
+
 /**
  * The operation orders inside each folder: a typewritten letter from the resistance that tells
  * the day's story one assignment at a time, then the orders for playing that level.
@@ -17,7 +19,8 @@ export type Briefing = {
   /** The story so far, one paragraph per entry. */
   backstory: string[];
   /** How to play this level, after the level's own brief. */
-  orders: string[];
+  /** The orders; one that names a gesture names the player's. */
+  orders: PointerText[];
 };
 
 const BRIEFINGS: Record<number, Briefing> = {
@@ -25,12 +28,12 @@ const BRIEFINGS: Record<number, Briefing> = {
     backstory: [
       "You file the Ministry's surveillance reports. You know how to read them, and your work takes you between departments. That is why we need you.",
       "Tonight we intend to take the Ministry's headquarters. Clerks, maintenance workers and guards are ready. The cameras would expose them before they reached their positions. We need a way to shut the network down without raising the alarm.",
-      "Start with the camera logs. They are scattered among the unwatched desks on the open floor. Collect the full set. We need to find a route our people can use unseen.",
+      "Start with the camera logs. They are scattered among the desks on the open floor, right under the cameras. Collect the full set. We need to find a route our people can use unseen.",
       "Your pass explains your presence. It does not explain searching another clerk's desk. One sighting passes for an errand. Three bring an inspector.",
     ],
     orders: [
-      "Clear every cell no camera can see.",
-      "Mark each camera you find.",
+      "Clear every cell that isn't a camera.",
+      (pointer) => `Mark each camera you find: ${MARK_GESTURE[pointer]}.`,
       "A number counts the cameras that can see its cell, along its row and column.",
       "Three strikes end your day.",
     ],
@@ -39,10 +42,10 @@ const BRIEFINGS: Record<number, Briefing> = {
     backstory: [
       "The logs show the same stretches of the service corridor missing from every recording for six years. Someone in the Ministry wanted a way through the building that leaves no trace.",
       "Our maintenance crew has walked part of that corridor, but never past the archive.",
-      "The building plans are filed in pieces in the corridor's unwatched alcoves. Bring back every sheet. If the hidden route reaches the surveillance centre, it is the only way our people can get there unseen.",
+      "The building plans are filed in pieces in the corridor's alcoves, in plain sight of its cameras. Bring back every sheet. If the hidden route reaches the surveillance centre, it is the only way our people can get there unseen.",
     ],
     orders: [
-      "Walls stop a camera's view. A number counts only the cameras it can see before a wall.",
+      "A camera can't see past a wall, so a number counts only the cameras in line with it before a wall.",
       "Cells in the same stretch share that part of their count.",
       "When no number helps, count the cameras you have not yet found.",
       "Clear every safe cell. Three strikes end your day.",
@@ -52,12 +55,12 @@ const BRIEFINGS: Record<number, Briefing> = {
     backstory: [
       "The plans show a sealed passage from the Inner Archive to the surveillance centre. It is real. Our guards have seen the door.",
       "Switching the cameras off is not enough. If they go dark without a signed order, every door locks and the guards are recalled. The shutdown order and its codes are filed across the Inner Archive. Bring back every page.",
-      "The posted camera counts are printed in red. Some have been altered to mislead intruders. Staff carry the original counts. Our contact checked the alterations: in every row with red figures, exactly one is wrong, off by one. The rest are true.",
+      "The posted camera counts are printed in red. Some have been altered to mislead intruders. Staff carry the original counts. Our contact checked the alterations: in every row with red figures, exactly one was changed, always by one, up or down. An altered 2 was really a 1 or a 3. The rest are true.",
     ],
     orders: [
-      "Red numbers are posted counts. In every row with red numbers, exactly one is false, off by one. The others are true.",
+      "Red numbers are posted counts. In every row with red numbers, exactly one lies: it is one too high or one too low. The others are true.",
       "Your own observations are always true.",
-      "In Mark camera mode, tap a red number to stamp it false. The stamp is only your note.",
+      (pointer) => `To stamp a red number false, ${MARK_GESTURE[pointer]}. The stamp is only your note.`,
       "Three strikes end your day.",
     ],
   },
@@ -68,7 +71,7 @@ const BRIEFINGS: Record<number, Briefing> = {
       "When the cameras stop, our people move at once: the communications floor, the directors' offices, the main gate. Nobody moves until you finish.",
     ],
     orders: [
-      "Red numbers are posted counts here too. In every row with red numbers, exactly one is false, off by one.",
+      "Red numbers are posted counts here too. In every row with red numbers, exactly one lies: it is one too high or one too low.",
       "Clear every safe cell. Clearing a cell means entering the shutdown order at that desk.",
       "Mark each camera you find.",
       "Three strikes end your day.",

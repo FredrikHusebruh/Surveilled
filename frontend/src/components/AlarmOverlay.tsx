@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { AnimationEvent } from "react";
-import type { Alarm } from "../hooks/useDaily.ts";
+import type { Alarm } from "../hooks/useBoardPlay.ts";
 
 /**
  * The alarm when a camera sees the player. A strike pulses a red glow around the screen's edge

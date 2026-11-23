@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { AnimationEvent, ReactNode } from "react";
-import type { Alarm } from "../hooks/useDaily.ts";
+import type { Alarm } from "../hooks/useBoardPlay.ts";
 
 /**
  * Shakes its children once per alarm. The wrapper stays mounted, so the board keeps its focus;

@@ -1,4 +1,4 @@
-import type { Cell, Game, Hint, LevelState, Standing } from "../api/schemas.ts";
+import type { Cell, Game, GuideAction, Hint, HintKind, LevelState, OpenOutcome, Standing } from "../api/schemas.ts";
 import { ApiError } from "../api/client.ts";
 import { isNumbered } from "./board.ts";
 
@@ -18,6 +18,32 @@ export function romanNumeral(index: number): string {
 
 export function formatRecordNo(recordNo: number): string {
   return String(recordNo).padStart(5, "0");
+}
+
+const MONTHS = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+] as const;
+
+/**
+ * A record date ("2026-11-21") as the form writes it: "21 November 2026". Read straight from the
+ * ISO string, never through Date, so no time zone can shift it to the day before.
+ */
+export function formatRecordDate(day: string): string {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(day);
+  const month = match === null ? undefined : MONTHS[Number(match[2]) - 1];
+  if (match === null || month === undefined) throw new Error(`Not a record date: "${day}".`);
+  return `${Number(match[3])} ${month} ${match[1]}`;
 }
 
 export function formatClock(seconds: number): string {
@@ -82,6 +108,58 @@ export function standingShareLine(standing: Standing): string {
   return phrase === null ? score : `${score} · ${phrase.toLowerCase()} of ${clerks(standing.players)}`;
 }
 
+/** Words around the training records. Each training's own words live in training.ts. */
+export const TRAINING = {
+  record: "Training record",
+  start: "Start training",
+  skip: "Skip training",
+  open: "How to play",
+  leave: "Leave training",
+  backToOrders: "Back to orders",
+  next: "Next training",
+  done: "Done",
+  tryAgain: "Try again",
+  recordNo: "Training",
+  wrongCell: "Try it on the outlined cell first.",
+  lost: "Seen three times. Try the record again: nothing is recorded in training.",
+  rulesTitle: "Rules",
+  rulesNote: "Practise any time: open How to play from a record's orders.",
+} as const;
+
+/** The typewriter sound switch: it reads as its state, so it needs no other label. */
+export const SOUND = { on: "Sound on", off: "Sound off" } as const;
+
+/** The player's main pointer: a finger (a coarse pointer) or a mouse. Help names only its gesture. */
+export type Pointer = "touch" | "mouse";
+
+/** How to mark a camera or stamp a Party record with the pointer in use. A tap clears or selects. */
+export const MARK_GESTURE: Record<Pointer, string> = {
+  touch: "press and hold it",
+  mouse: "right-click it",
+};
+
+/** Player-facing words that name a gesture, so they depend on the player's pointer. */
+export type PointerText = string | ((pointer: Pointer) => string);
+
+/** The words for the player's pointer. */
+export function forPointer(text: PointerText, pointer: Pointer): string {
+  return typeof text === "string" ? text : text(pointer);
+}
+
+/** A guided training move's reply when the player picked the right cell but the wrong move for it. */
+export function wrongMove(action: GuideAction, pointer: Pointer): string {
+  switch (action) {
+    case "select":
+      return "Tap it to light up the cells in line with it.";
+    case "clear":
+      return "That cell is safe. Tap it to clear it.";
+    case "mark":
+      return `Mark it: ${MARK_GESTURE[pointer]}.`;
+    case "stamp":
+      return `Stamp it: ${MARK_GESTURE[pointer]}.`;
+  }
+}
+
 export const PREPARING_MESSAGE = "Preparing the records.";
 export const START_PAGE_NOTE = "Read your orders first. The clock starts when you start the operation.";
 
@@ -108,21 +186,26 @@ export const LEVEL_STATE_LABELS: Record<LevelState, string> = {
   filed: "Filed",
   seen: "Seen",
 };
-export const CASCADE_MESSAGE = "A zero. Everything it sees is safe, so those cells were cleared too.";
-export const MARKED_CELL_MESSAGE =
-  "That cell is marked as a camera. Switch to Mark camera and tap it to remove the mark.";
+export const CASCADE_MESSAGE = "A zero: no camera can see it, so every cell in line with it is safe. Those were cleared too.";
+/** The answer to a plain tap on a marked cell, which does nothing. */
+export function markedCellMessage(pointer: Pointer): string {
+  return `That cell is marked as a camera. To remove the mark, ${MARK_GESTURE[pointer]} again.`;
+}
 
 export function defaultMessage(lies: boolean): string {
   return lies
-    ? "Tap a number to see its sight lines. Trust the black numbers; doubt the red ones."
-    : "Tap a number to see its sight lines.";
+    ? "Tap a number to light up the cells in line with it. Trust the black numbers; doubt the red ones."
+    : "Tap a number to light up the cells in line with it.";
 }
 
 export function seenMessage(strikes: number, maxStrikes: number): string {
   return `You were seen. Strike ${strikes} of ${maxStrikes}. That cell held a camera.`;
 }
 
-/** What a selected number sees and what that implies, counting only what the player knows. */
+/**
+ * What is in line with a selected number and what that implies, counting only what the player
+ * knows. Only cameras see: a number never "sees" anything.
+ */
 export function sightMessage(game: Game, cell: number): string {
   const target = game.cells[cell];
   if (!isNumbered(target)) throw new Error(`Cell ${cell} has no number to describe.`);
@@ -131,18 +214,50 @@ export function sightMessage(game: Game, cell: number): string {
   const hidden = seen.filter((c) => c.kind === "hidden").length;
   const need = target.value - marked;
 
-  let text = `This ${target.value} sees ${plural(marked, "marked camera")} and ${plural(hidden, "hidden cell")}.`;
-  if (target.kind === "given" && game.lies) text += " It is a Party record, so it may be off by one.";
-  else if (hidden > 0 && need === 0) text += " It is satisfied: every hidden cell it sees is safe.";
+  let text = `In line with this ${target.value}: ${plural(marked, "marked camera")} and ${plural(hidden, "hidden cell")}.`;
+  if (target.kind === "given" && game.lies) text += " It is a Party record, so it may be one too high or one too low.";
+  else if (hidden > 0 && need === 0)
+    text += ` It already counts all its cameras, so ${hidden === 1 ? "that hidden cell is safe" : "those hidden cells are safe"}.`;
   else if (hidden > 0 && need === hidden)
-    text += ` It needs ${need} more, so every hidden cell it sees is a camera.`;
+    text += ` It needs ${need} more, so ${hidden === 1 ? "that hidden cell is a camera" : "those hidden cells are cameras"}.`;
   else if (need > 0) text += ` It needs ${need} more among them.`;
   return text;
 }
 
-/** What the Hint button says to screen readers, since its count is drawn as squares. */
-export function hintButtonLabel(hintsLeft: number, hintsPerDay: number): string {
-  return hintsLeft === 0 ? "Hint, none left today" : `Hint, ${hintsLeft} of ${hintsPerDay} left today`;
+/** The three hints, in the order the controls show them. */
+export const HINT_KINDS: readonly HintKind[] = ["open", "camera", "safe"];
+
+/** Each hint's button label, and what it does (for screen readers). */
+export const HINTS: Record<HintKind, { label: string; does: string }> = {
+  open: { label: "Open", does: "open a cell you choose" },
+  camera: { label: "Camera", does: "show a camera" },
+  safe: { label: "Safe cell", does: "show a safe cell" },
+};
+
+/** Whether a hint can still be taken: left today, used today, or free (training). */
+export type HintState = "left" | "used" | "free";
+
+/** The small line under each hint button's label. */
+export const HINT_TALLY: Record<HintState, string> = { left: "Hint", used: "Used", free: "Free" };
+
+/** What a hint button says to screen readers. */
+export function hintButtonLabel(kind: HintKind, state: HintState): string {
+  const status = { left: "1 left today", used: "used today", free: "free in training" }[state];
+  return `Hint: ${HINTS[kind].does}, ${status}`;
+}
+
+export const OPEN_CHOOSE_MESSAGE = "Tap a hidden cell to open it. Tap Open again to cancel.";
+
+/** The message once the Open hint has opened the chosen cell. */
+export function openMessage(outcome: OpenOutcome, lies: boolean): string {
+  switch (outcome) {
+    case "marked":
+      return "That cell is a camera. It is marked for you, with no strike.";
+    case "cascade":
+      return CASCADE_MESSAGE;
+    case "cleared":
+      return `That cell is safe. ${defaultMessage(lies)}`;
+  }
 }
 
 export function hintMessage(hint: Hint, lies: boolean): string {
@@ -150,15 +265,19 @@ export function hintMessage(hint: Hint, lies: boolean): string {
     case "wrong_mark":
       return "One of your marks is on a safe cell. The dashed outline shows it.";
     case "none":
-      return "No new deduction found. Check your marks.";
+      return "Every camera is already marked.";
+    case "located":
+      return hint.verdict === "camera"
+        ? "The dashed cell is a camera. Nothing on the board proves it yet."
+        : "The dashed cell is safe. Nothing on the board proves it yet.";
     case "clue": {
       if (hint.verdict === "camera") {
-        return `Look at the outlined ${hint.clueValue}. It needs ${plural(hint.clueValue - hint.camerasSeen, "camera")} more and can see exactly ${plural(hint.hiddenSeen, "hidden cell")}, so they are all cameras, including the dashed one.`;
+        return `Look at the outlined ${hint.clueValue}. It needs ${plural(hint.clueValue - hint.camerasSeen, "camera")} more and has exactly ${plural(hint.hiddenSeen, "hidden cell")} in line with it, so they are all cameras, including the dashed one.`;
       }
       if (hint.clueValue === 0) {
-        return "Look at the outlined 0. No camera can see it, so every hidden cell in its sight lines is safe, including the dashed one.";
+        return "Look at the outlined 0. No camera can see it, so every hidden cell in line with it is safe, including the dashed one.";
       }
-      return `Look at the outlined ${hint.clueValue}. It already sees all ${plural(hint.camerasSeen, "camera")} it needs, so every other hidden cell it sees is safe, including the dashed one.`;
+      return `Look at the outlined ${hint.clueValue}. It already counts all ${plural(hint.camerasSeen, "camera")} it needs, so every other hidden cell in line with it is safe, including the dashed one.`;
     }
     case "deduction": {
       const safe = hint.verdict === "safe";

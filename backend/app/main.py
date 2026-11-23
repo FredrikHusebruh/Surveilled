@@ -9,7 +9,7 @@ from fastapi import FastAPI
 from app.config import get_settings
 from app.dependencies import get_puzzle_book, get_run_store
 from app.error_handlers import register_error_handlers
-from app.routers import daily
+from app.routers import daily, training
 from app.services.daily_service import DailyService
 from app.services.puzzle_warmer import PuzzleWarmer
 
@@ -49,6 +49,7 @@ def create_app() -> FastAPI:
     )
     register_error_handlers(app)
     app.include_router(daily.router)
+    app.include_router(training.router)
     return app
 
 
