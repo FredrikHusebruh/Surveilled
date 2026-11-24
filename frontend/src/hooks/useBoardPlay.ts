@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from "react";
 import type { ClearOutcome, Game, Hint, HintKind, OpenOutcome, ShowHintKind } from "../api/schemas.ts";
-import { cellAction, isUnrevealed, revealDelays, type Gesture } from "../game/board.ts";
+import { SWEEP_MS_PER_STEP, cellAction, isUnrevealed, revealDelays, sightDistances, type Gesture } from "../game/board.ts";
 import {
   CASCADE_MESSAGE,
   OPEN_CHOOSE_MESSAGE,
@@ -11,7 +11,7 @@ import {
   seenMessage,
   sightMessage,
 } from "../game/copy.ts";
-import { ringBell, seen, shutter, stampThud, tick, typeKeys, wakeSound } from "../lib/sound.ts";
+import { lightLines, lightsOff, ringBell, seen, shutter, stampThud, tick, typeKeys, wakeSound } from "../lib/sound.ts";
 import { usePointer } from "./usePointer.ts";
 
 export type Message = { text: string; alert: boolean };
@@ -21,6 +21,9 @@ export type Alarm = { kind: "strike" | "loss"; id: number };
 
 /** How long after the last keystroke the carriage bell rings for a filed record, in ms. */
 const BELL_AFTER_MS = 180;
+/** How long one cell takes to turn yellow once the sweep reaches it (BoardCell's colour transition). */
+const LIGHT_FADE_MS = 180;
+
 
 export const say = (text: string): Message => ({ text, alert: false });
 
@@ -79,11 +82,18 @@ export function useBoardPlay({ game, moves, run, setMessage, lostMessage }: Opti
     if (after.status === "won") ringBell(Math.max(...delays.values()) + BELL_AFTER_MS);
   }, []);
 
+  /** Select a number to light up its lines, with the lamp's sound; selecting it again lets go. */
   const toggleSelect = useCallback(
     (current: Game, cell: number) => {
       const next = selected === cell ? null : cell;
       setSelected(next);
       setMessage(say(next === null ? defaultMessage(current.lies) : sightMessage(current, cell)));
+      if (next === null) {
+        lightsOff();
+        return;
+      }
+      const farthest = Math.max(0, ...sightDistances(current, cell).values());
+      lightLines(farthest * SWEEP_MS_PER_STEP + LIGHT_FADE_MS);
     },
     [selected, setMessage],
   );

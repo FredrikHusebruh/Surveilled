@@ -204,13 +204,14 @@ const TYPE_SET = [
 ] as const;
 
 /**
- * A number on the record, typed by typewriter: the orders' own typewriter face and weight, set
- * slightly off true. A true number is always ink (design rule 3); only Party records are red.
+ * A number on the record, typed in the board's face (IBM Plex Mono, semibold: an electric office
+ * typewriter's clean, even strike), set slightly off true. A true number is always ink (design
+ * rule 3); only Party records are red.
  */
 function Digit({ value, index, party }: { value: number; index: number; party: boolean }) {
   return (
     <span
-      className={`relative font-typewriter text-[length:calc(100cqi/var(--cols)*0.6)] leading-none font-normal ${party ? "text-party" : "text-ink"} ${TYPE_SET[(index * 7 + 3) % TYPE_SET.length]}`}
+      className={`relative font-board text-[length:calc(100cqi/var(--cols)*0.56)] leading-none font-semibold ${party ? "text-party" : "text-ink"} ${TYPE_SET[(index * 7 + 3) % TYPE_SET.length]}`}
     >
       {value}
     </span>

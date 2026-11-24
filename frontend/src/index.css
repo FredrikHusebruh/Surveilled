@@ -23,6 +23,7 @@
     "Big Shoulders Stencil Display", Impact, "Arial Narrow", sans-serif;
   --font-digit: "Big Shoulders Display", Impact, "Arial Narrow", sans-serif;
   --font-body: "Courier Prime", "Courier New", Courier, monospace;
+  --font-typed: "IBM Plex Mono", "Courier Prime", "Courier New", monospace;
 
   --space-board: 3px;
   --space-1: 4px;
@@ -57,6 +58,7 @@
   --font-stencil: var(--font-display);
   --font-condensed: var(--font-digit);
   --font-typewriter: var(--font-body);
+  --font-board: var(--font-typed);
   --default-font-family: var(--font-body);
 }
 

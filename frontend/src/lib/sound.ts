@@ -5,7 +5,8 @@ import { readStored, writeStored } from "./storage.ts";
  * The office's sounds, synthesised with Web Audio so there are no files to load: a typewriter
  * keystroke for every cell typed onto the record, a camera shutter when a camera is marked, a
  * rubber stamp's thud when a Party record is stamped False, a soft tick when either is taken back,
- * the carriage bell when a record is filed, and the typewriter jamming when the player is seen
+ * a desk lamp's click and a breath of air when a number's lines light up, the carriage bell when a
+ * record is filed, and the typewriter jamming when the player is seen
  * (with a siren when that loses the record). The player can turn it off; that choice is a
  * per-viewer convenience kept in localStorage (the "sound" key, named in the privacy notice).
  */
@@ -106,6 +107,42 @@ export function stampThud(): void {
 export function tick(): void {
   play((ctx, out, now) => {
     burst(ctx, out, now, { type: "bandpass", frequency: 1500, q: 1.5, level: 0.3, decay: 0.02 });
+  });
+}
+
+/**
+ * A number's lines lighting up: the soft click of a desk-lamp switch, then a faint breath of air
+ * rising in pitch as the light sweeps outward, lasting `sweepMs`, as long as the sweep on screen.
+ * Kept well below the keystroke, since it answers every tap on a number.
+ */
+export function lightLines(sweepMs: number): void {
+  play((ctx, out, now) => {
+    burst(ctx, out, now, { type: "bandpass", frequency: 2200, q: 3, level: 0.18, decay: 0.012 });
+    thump(ctx, out, now, { from: 320, to: 220, level: 0.06, decay: 0.02 });
+    noise ??= whiteNoise(ctx);
+    const air = ctx.createBufferSource();
+    air.buffer = noise;
+    air.loop = true;
+    const band = ctx.createBiquadFilter();
+    band.type = "bandpass";
+    band.Q.value = 1.5;
+    const end = now + 0.01 + sweepMs / 1000;
+    band.frequency.setValueAtTime(700, now);
+    band.frequency.exponentialRampToValueAtTime(2600, end);
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.exponentialRampToValueAtTime(0.05, now + 0.04);
+    gain.gain.exponentialRampToValueAtTime(0.0001, end + 0.08);
+    air.connect(band).connect(gain).connect(out);
+    air.start(now);
+    air.stop(end + 0.1);
+  });
+}
+
+/** The lamp switched off: a number let go. A softer click than switching it on. */
+export function lightsOff(): void {
+  play((ctx, out, now) => {
+    burst(ctx, out, now, { type: "bandpass", frequency: 1700, q: 3, level: 0.12, decay: 0.01 });
   });
 }
 
