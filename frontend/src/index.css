@@ -31,10 +31,18 @@
   --space-3: 10px;
   --space-4: 14px;
   --space-5: 16px;
-  --cell-max: 60px;
+  --cell-max: 72px;
+  --cell-floor: 36px; /* the smallest a cell may shrink to fit the screen; 44px on touch screens */
   --sheet-max: 500px;
   --shadow-tile: inset 0 -4px 0 rgba(27, 31, 29, 0.16);
   color-scheme: light;
+}
+
+/* A finger needs a bigger cell than a mouse pointer. */
+@media (pointer: coarse) {
+  :root {
+    --cell-floor: 44px;
+  }
 }
 
 /* Expose the tokens as Tailwind utilities. The default palette is removed so no other color can slip in. */
@@ -79,6 +87,7 @@
   --animate-seal-break: seal-break 0.28s ease-in both;
   --animate-cover-open: cover-open 0.6s cubic-bezier(0.4, 0, 0.2, 1) 0.22s both;
   --animate-paper-lift: paper-lift 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) 0.75s both;
+  --animate-feed: feed 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) both;
   --animate-unfold: unfold 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both;
 
   --animate-keystrike: keystrike 0.36s linear both;
@@ -143,6 +152,16 @@
     to {
       scale: 1 1;
       opacity: 1;
+    }
+  }
+
+  /* A fresh sheet is fed into the typewriter: it rises from behind the platen. */
+  @keyframes feed {
+    from {
+      translate: 0 100%;
+    }
+    to {
+      translate: 0 0;
     }
   }
 

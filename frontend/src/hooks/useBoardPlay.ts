@@ -186,7 +186,7 @@ export function useBoardPlay({ game, moves, run, setMessage, lostMessage }: Opti
 
   /**
    * A hint button. Open waits for the player to choose a cell (pressing it again cancels);
-   * Camera and Safe cell outline one, with what proves it when something does.
+   * Camera and Safe outline one, with what proves it when something does.
    */
   const takeHint = useCallback(
     (kind: HintKind) => {

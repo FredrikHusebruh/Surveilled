@@ -36,7 +36,7 @@ export function toggleTrainingStamp(level: number, cell: number): Promise<Traini
   return requestJson(trainingPath(level, "stamp"), trainingSchema, { method: "POST", body: { cell } });
 }
 
-/** The Camera or Safe cell hint on the training record. Free and unlimited, unlike the day's. */
+/** The Camera or Safe hint on the training record. Free and unlimited, unlike the day's. */
 export function requestTrainingHint(level: number, kind: ShowHintKind): Promise<TrainingHintResponse> {
   return requestJson(trainingPath(level, "hint"), trainingHintResponseSchema, { method: "POST", body: { kind } });
 }

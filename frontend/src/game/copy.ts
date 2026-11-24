@@ -61,7 +61,8 @@ export function formatCountdown(ms: number): string {
 export const plural = (n: number, word: string): string => `${n} ${word}${n === 1 ? "" : "s"}`;
 
 const COUNT = new Intl.NumberFormat("en-GB");
-const clerks = (n: number): string => `${COUNT.format(n)} ${n === 1 ? "clerk" : "clerks"}`;
+/** Everyone else playing the same day: fellow insiders. */
+const insiders = (n: number): string => `${COUNT.format(n)} ${n === 1 ? "insider" : "insiders"}`;
 
 export const STANDING_LOADING = "Comparing your file with the others.";
 
@@ -77,11 +78,11 @@ function rankingPhrase(standing: Standing): string | null {
 /** The standing's headline on the day's last report. */
 export function standingHeadline(standing: Standing): string {
   const phrase = rankingPhrase(standing);
-  return phrase === null ? `Last of ${clerks(standing.players)} so far.` : `${phrase} of clerks today.`;
+  return phrase === null ? `Last of ${insiders(standing.players)} so far.` : `${phrase} of insiders today.`;
 }
 
 export function standingTooFew(standing: Standing): string {
-  return `Too few clerks have finished Day ${standing.dayNumber} to compare yet. Check the report again later.`;
+  return `Too few insiders have finished Day ${standing.dayNumber} to compare yet. Check the report again later.`;
 }
 
 export type ScoreLine = { label: string; value: string };
@@ -101,11 +102,11 @@ export function scoreLines(standing: Standing): ScoreLine[] {
   return lines;
 }
 
-/** The standing on the share card: "Score 22:45 · top 8% of 1,204 clerks". */
+/** The standing on the share card: "Score 22:45 · top 8% of 1,204 insiders". */
 export function standingShareLine(standing: Standing): string {
   const score = `Score ${formatClock(standing.totalSeconds)}`;
   const phrase = standing.comparable ? rankingPhrase(standing) : null;
-  return phrase === null ? score : `${score} · ${phrase.toLowerCase()} of ${clerks(standing.players)}`;
+  return phrase === null ? score : `${score} · ${phrase.toLowerCase()} of ${insiders(standing.players)}`;
 }
 
 /** Words around the training records. Each training's own words live in training.ts. */
@@ -227,18 +228,21 @@ export function sightMessage(game: Game, cell: number): string {
 /** The three hints, in the order the controls show them. */
 export const HINT_KINDS: readonly HintKind[] = ["open", "camera", "safe"];
 
-/** Each hint's button label, and what it does (for screen readers). */
+/**
+ * Each hint key's small word under its symbol (`HintIcon`), and what the hint does (for screen
+ * readers). Never "blind spot" for a safe cell: cameras can still see it.
+ */
 export const HINTS: Record<HintKind, { label: string; does: string }> = {
   open: { label: "Open", does: "open a cell you choose" },
   camera: { label: "Camera", does: "show a camera" },
-  safe: { label: "Safe cell", does: "show a safe cell" },
+  safe: { label: "Safe", does: "show a safe cell" },
 };
 
 /** Whether a hint can still be taken: left today, used today, or free (training). */
 export type HintState = "left" | "used" | "free";
 
-/** The small line under each hint button's label. */
-export const HINT_TALLY: Record<HintState, string> = { left: "Hint", used: "Used", free: "Free" };
+/** The word a hint key shows in place of its own once it is used for the day. */
+export const HINT_USED = "Used";
 
 /** What a hint button says to screen readers. */
 export function hintButtonLabel(kind: HintKind, state: HintState): string {

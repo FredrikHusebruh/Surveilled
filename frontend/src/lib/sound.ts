@@ -5,9 +5,11 @@ import { readStored, writeStored } from "./storage.ts";
  * The office's sounds, synthesised with Web Audio so there are no files to load: a typewriter
  * keystroke for every cell typed onto the record, a camera shutter when a camera is marked, a
  * rubber stamp's thud when a Party record is stamped False, a soft tick when either is taken back,
- * a desk lamp's click and a breath of air when a number's lines light up, the carriage bell when a
- * record is filed, and the typewriter jamming when the player is seen
- * (with a siren when that loses the record). The player can turn it off; that choice is a
+ * a desk lamp's click and a breath of air when a number's lines light up, the folder's seal
+ * cracking and its cover swinging open, the platen's ratchet when
+ * a fresh sheet is fed in, the carriage bell when a
+ * record is filed, and the typewriter jamming when the player is seen (with a soft siren when
+ * that loses the record). The player can turn it off; that choice is a
  * per-viewer convenience kept in localStorage (the "sound" key, named in the privacy notice).
  */
 
@@ -22,6 +24,7 @@ const listeners = new Set<() => void>();
 let context: AudioContext | null = null;
 let master: AudioNode | null = null;
 let noise: AudioBuffer | null = null;
+let longNoise: AudioBuffer | null = null;
 
 /** Whether the sound is on. */
 export function soundOn(): boolean {
@@ -103,6 +106,25 @@ export function stampThud(): void {
   });
 }
 
+/** How many teeth of the platen's ratchet click past as a fresh sheet is fed in. */
+const FEED_CLICKS = 7;
+
+/**
+ * A fresh sheet fed into the typewriter: the platen knob's ratchet, a quick run of soft clicks
+ * over the low roll of the platen. Only once a tap has woken the audio: a sheet that is simply
+ * there when the page loads makes no sound, and the browser is never asked to start audio unasked.
+ */
+export function feedPaper(): void {
+  if (context === null || context.state !== "running") return;
+  play((ctx, out, now) => {
+    thump(ctx, out, now, { from: 140, to: 80, level: 0.12, decay: 0.2 });
+    for (let k = 0; k < FEED_CLICKS; k++) {
+      const at = now + 0.02 + k * 0.03 + Math.random() * 0.004;
+      burst(ctx, out, at, { type: "bandpass", frequency: k % 2 === 0 ? 2600 : 2200, q: 3, level: 0.16, decay: 0.012 });
+    }
+  });
+}
+
 /** A soft tick: a mark or a stamp was taken back. */
 export function tick(): void {
   play((ctx, out, now) => {
@@ -119,23 +141,36 @@ export function lightLines(sweepMs: number): void {
   play((ctx, out, now) => {
     burst(ctx, out, now, { type: "bandpass", frequency: 2200, q: 3, level: 0.18, decay: 0.012 });
     thump(ctx, out, now, { from: 320, to: 220, level: 0.06, decay: 0.02 });
-    noise ??= whiteNoise(ctx);
-    const air = ctx.createBufferSource();
-    air.buffer = noise;
-    air.loop = true;
-    const band = ctx.createBiquadFilter();
-    band.type = "bandpass";
-    band.Q.value = 1.5;
-    const end = now + 0.01 + sweepMs / 1000;
-    band.frequency.setValueAtTime(700, now);
-    band.frequency.exponentialRampToValueAtTime(2600, end);
-    const gain = ctx.createGain();
-    gain.gain.setValueAtTime(0.0001, now);
-    gain.gain.exponentialRampToValueAtTime(0.05, now + 0.04);
-    gain.gain.exponentialRampToValueAtTime(0.0001, end + 0.08);
-    air.connect(band).connect(gain).connect(out);
-    air.start(now);
-    air.stop(end + 0.1);
+    swell(ctx, out, now, { type: "bandpass", from: 700, to: 2600, q: 1.5, level: 0.05, attack: 0.04, length: 0.09 + sweepMs / 1000 });
+  });
+}
+
+/** When the folder's animations (index.css) start, in seconds after the tap. */
+const COVER_SWINGS_S = 0.22;
+const COVER_SWING_S = 0.6;
+const ORDERS_LIFT_S = 0.75;
+const ORDERS_LIFT_LENGTH_S = 0.45;
+const WAX_CRUMBS = 5;
+
+/**
+ * Opening the sealed folder, timed to its animation: the wax seal cracks (a sharp snap, crumbs
+ * of wax and a dull give), the manila cover swings open with a soft flap and a breath of air,
+ * then the orders slide out of the folder with a dry paper hiss.
+ */
+export function openFolder(): void {
+  play((ctx, out, now) => {
+    burst(ctx, out, now, { type: "highpass", frequency: 2800, q: 0.7, level: 0.55, decay: 0.015 });
+    burst(ctx, out, now + 0.012, { type: "bandpass", frequency: 1200, q: 1, level: 0.45, decay: 0.04 });
+    thump(ctx, out, now, { from: 180, to: 70, level: 0.3, decay: 0.07 });
+    for (let k = 0; k < WAX_CRUMBS; k++) {
+      const at = now + 0.025 + Math.random() * 0.09;
+      burst(ctx, out, at, { type: "highpass", frequency: 3500, q: 0.8, level: 0.12 + Math.random() * 0.1, decay: 0.008 });
+    }
+    const cover = now + COVER_SWINGS_S;
+    thump(ctx, out, cover, { from: 150, to: 90, level: 0.1, decay: 0.05 });
+    swell(ctx, out, cover, { type: "bandpass", from: 320, to: 900, q: 0.8, level: 0.09, attack: 0.25, length: COVER_SWING_S });
+    const orders = now + ORDERS_LIFT_S;
+    swell(ctx, out, orders, { type: "bandpass", from: 2600, to: 4200, q: 0.7, level: 0.045, attack: 0.1, length: ORDERS_LIFT_LENGTH_S });
   });
 }
 
@@ -185,59 +220,41 @@ export function seen(lost: boolean): void {
   });
 }
 
+/** Each light of the overlay's siren (AlarmOverlay.tsx) shows for this long. */
+const SIREN_HALF_S = 0.4;
+/** The siren sounds for the first two of the lights' four cycles, then has faded out. */
+const SIREN_STEPS = 4;
+const SIREN_HIGH = 700;
+const SIREN_LOW = 560;
+
 /**
- * The loss siren: a police two-tone, high while the red light shows and low while the blue does,
- * for the overlay's four cycles of 0.8s (AlarmOverlay.tsx), fading out with them.
+ * The loss siren, kept in the distance: a soft police two-tone (a rounded triangle wave, low and
+ * quiet), high while the red light shows and low while the blue does. It sounds for the first two
+ * cycles of the lights and fades out under them; the lights carry on in silence.
  */
 function siren(ctx: AudioContext, out: AudioNode, now: number): void {
-  const cycles = 4;
-  const half = 0.4;
-  const end = cycles * 2 * half;
-  const osc = tone(ctx, out, now, { type: "sawtooth", from: 960, to: 960, level: 0.07, attack: 0.05, hold: end - 0.45, release: 0.4, lowpass: 2500 });
-  for (let step = 1; step < cycles * 2; step++) {
-    const at = now + step * half;
-    const [held, next] = step % 2 === 0 ? [770, 960] : [960, 770];
-    // Hold the last note until just before the light changes, then glide to the next.
-    osc.frequency.setValueAtTime(held, at - 0.03);
+  const end = now + SIREN_STEPS * SIREN_HALF_S;
+  const osc = ctx.createOscillator();
+  osc.type = "triangle";
+  osc.frequency.setValueAtTime(SIREN_HIGH, now);
+  for (let step = 1; step < SIREN_STEPS; step++) {
+    const at = now + step * SIREN_HALF_S;
+    const [held, next] = step % 2 === 0 ? [SIREN_LOW, SIREN_HIGH] : [SIREN_HIGH, SIREN_LOW];
+    // Hold the note until just before the light changes, then glide to the next.
+    osc.frequency.setValueAtTime(held, at - 0.04);
     osc.frequency.linearRampToValueAtTime(next, at);
   }
-}
-
-type Tone = {
-  type: OscillatorType;
-  from: number;
-  to: number;
-  level: number;
-  attack: number;
-  hold: number;
-  release: number;
-  /** Rounds off a harsh wave's top end. */
-  lowpass?: number;
-};
-
-/** A held tone: it rises over `attack`, holds, gliding from `from` to `to` Hz, and fades over `release`. */
-function tone(ctx: AudioContext, out: AudioNode, at: number, { type, from, to, level, attack, hold, release, lowpass }: Tone): OscillatorNode {
-  const osc = ctx.createOscillator();
-  osc.type = type;
-  osc.frequency.setValueAtTime(from, at);
-  if (to !== from) osc.frequency.exponentialRampToValueAtTime(to, at + attack + hold);
+  const filter = ctx.createBiquadFilter();
+  filter.type = "lowpass";
+  filter.frequency.value = 1400;
   const gain = ctx.createGain();
-  gain.gain.setValueAtTime(0.0001, at);
-  gain.gain.exponentialRampToValueAtTime(level, at + attack);
-  gain.gain.setValueAtTime(level, at + attack + hold);
-  gain.gain.exponentialRampToValueAtTime(0.0001, at + attack + hold + release);
-  if (lowpass === undefined) {
-    osc.connect(gain);
-  } else {
-    const filter = ctx.createBiquadFilter();
-    filter.type = "lowpass";
-    filter.frequency.value = lowpass;
-    osc.connect(filter).connect(gain);
-  }
-  gain.connect(out);
-  osc.start(at);
-  osc.stop(at + attack + hold + release + 0.02);
-  return osc;
+  gain.gain.setValueAtTime(0.0001, now);
+  gain.gain.exponentialRampToValueAtTime(0.035, now + 0.12);
+  gain.gain.setValueAtTime(0.035, now + 0.8);
+  gain.gain.exponentialRampToValueAtTime(0.0001, end);
+  osc.connect(filter).connect(gain).connect(out);
+  osc.start(now);
+  osc.stop(end + 0.02);
 }
 
 /** Run `sound` on the shared audio graph, unless the sound is off or Web Audio is missing. */
@@ -277,7 +294,7 @@ type Burst = { type: BiquadFilterType; frequency: number; q: number; level: numb
 
 /** A filtered crack of noise: the hard edge of a strike. */
 function burst(ctx: AudioContext, out: AudioNode, at: number, { type, frequency, q, level, decay }: Burst): void {
-  noise ??= whiteNoise(ctx);
+  noise ??= whiteNoise(ctx, SHORT_NOISE_S);
   const source = ctx.createBufferSource();
   source.buffer = noise;
   const filter = ctx.createBiquadFilter();
@@ -287,6 +304,32 @@ function burst(ctx: AudioContext, out: AudioNode, at: number, { type, frequency,
   source.connect(filter).connect(envelope(ctx, out, at, level, decay));
   source.start(at);
   source.stop(at + Math.min(decay + 0.02, noise.duration));
+}
+
+type Swell = { type: BiquadFilterType; from: number; to: number; q: number; level: number; attack: number; length: number };
+
+/**
+ * A breath of filtered noise that swells over `attack` and dies away by `length` seconds, its
+ * filter gliding from `from` to `to` Hz: air moving, a lamp's light spreading, paper sliding.
+ */
+function swell(ctx: AudioContext, out: AudioNode, at: number, { type, from, to, q, level, attack, length }: Swell): void {
+  // A long stretch of noise: a short one looped repeats audibly, a flutter under the sound.
+  longNoise ??= whiteNoise(ctx, LONG_NOISE_S);
+  const source = ctx.createBufferSource();
+  source.buffer = longNoise;
+  source.loop = true;
+  const filter = ctx.createBiquadFilter();
+  filter.type = type;
+  filter.Q.value = q;
+  filter.frequency.setValueAtTime(from, at);
+  filter.frequency.exponentialRampToValueAtTime(to, at + length);
+  const gain = ctx.createGain();
+  gain.gain.setValueAtTime(0.0001, at);
+  gain.gain.exponentialRampToValueAtTime(level, at + attack);
+  gain.gain.exponentialRampToValueAtTime(0.0001, at + length);
+  source.connect(filter).connect(gain).connect(out);
+  source.start(at);
+  source.stop(at + length + 0.02);
 }
 
 type Thump = { from: number; to: number; level: number; decay: number };
@@ -301,9 +344,14 @@ function thump(ctx: AudioContext, out: AudioNode, at: number, { from, to, level,
   osc.stop(at + decay + 0.02);
 }
 
-/** 0.12s of white noise, long enough for the longest burst. */
-function whiteNoise(ctx: AudioContext): AudioBuffer {
-  const buffer = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * 0.12), ctx.sampleRate);
+/** Noise for the bursts: long enough for the longest. */
+const SHORT_NOISE_S = 0.12;
+/** Noise for the swells: longer than any of them, so the loop never repeats within one. */
+const LONG_NOISE_S = 2;
+
+/** `seconds` of white noise. */
+function whiteNoise(ctx: AudioContext, seconds: number): AudioBuffer {
+  const buffer = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * seconds), ctx.sampleRate);
   const data = buffer.getChannelData(0);
   for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
   return buffer;

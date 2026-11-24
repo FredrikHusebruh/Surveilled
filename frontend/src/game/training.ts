@@ -76,7 +76,7 @@ export const TRAININGS: TrainingCopy[] = [
       "Clear every cell that isn't a camera to file the record.",
       "Clearing a camera is a strike. The third strike in a record ends your day.",
       (pointer) => `To mark a camera, ${MARK_GESTURE[pointer]}. Marks are only notes.`,
-      "Four records a day, in order. Three hints a day, one of each: open a cell you choose, show a camera, show a safe cell.",
+      "Four records a day, in order. Three hints a day, one of each: Open (the magnifying glass) opens a cell you choose, Camera shows a camera, Safe (the camera struck through) shows a safe cell.",
     ],
   },
   {

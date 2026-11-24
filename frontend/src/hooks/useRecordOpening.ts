@@ -1,5 +1,6 @@
 import { useCallback, useState } from "react";
 import type { Level } from "../api/schemas.ts";
+import { openFolder } from "../lib/sound.ts";
 
 /** Where an unopened record is: sealed in its folder, being opened, or open as orders to read. */
 export type OpeningPhase = "sealed" | "opening" | "briefing";
@@ -18,6 +19,8 @@ export function useRecordOpening(level: Level | null) {
   const open = useCallback(() => {
     if (level === null) return;
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    // The folder's sound follows its animation; without the animation the orders are simply fed in.
+    if (!reduced) openFolder();
     setStage({ level: level.level, phase: reduced ? "briefing" : "opening" });
   }, [level]);
 

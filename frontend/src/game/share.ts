@@ -11,7 +11,7 @@ import { formatClock, plural, romanNumeral, standingShareLine } from "./copy.ts"
  *   III ■ 05:02 · 1 strike
  *   IV  ■ 11:40 · 2 hints
  *   REGIME TOPPLED · 20:45
- *   Score 22:45 · top 8% of 1,204 clerks
+ *   Score 22:45 · top 8% of 1,204 insiders
  *   Toppled 3 days running
  *   https://example.org
  */

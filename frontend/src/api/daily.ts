@@ -56,7 +56,7 @@ export function toggleStamp(day: string, level: number, cell: number): Promise<D
   return requestJson(levelPath(day, level, "stamp"), dailySchema, { method: "POST", body: { cell } });
 }
 
-/** The Camera or Safe cell hint: where a camera, or a safe cell, is. One of each a day. */
+/** The Camera or Safe hint: where a camera, or a safe cell, is. One of each a day. */
 export function requestHint(day: string, level: number, kind: ShowHintKind): Promise<HintResponse> {
   return requestJson(levelPath(day, level, "hint"), hintResponseSchema, { method: "POST", body: { kind } });
 }

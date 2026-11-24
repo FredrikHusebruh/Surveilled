@@ -4,14 +4,21 @@ import { MARK_GESTURE, type PointerText } from "./copy.ts";
  * The operation orders inside each folder: a typewritten letter from the resistance that tells
  * the day's story one assignment at a time, then the orders for playing that level.
  *
+ * The story: the player is a draughtsman in the Ministry's Planning Office. Every floor plan
+ * crosses their desk, but the cameras are drawn elsewhere; only their counts reach the plans. Each
+ * record is one plan: the player marks its cameras, checking the doubtful spots in person on their
+ * rounds (a camera there sees them: a strike), so that the resistance's team can go in unseen.
+ * Filing level IV is the night the team goes in.
+ *
  * Copy rules still apply (design.md rule 10): flat, second person, no exclamation marks, no jokes.
- * The setting is ours: never quote or borrow Orwell's text, characters or organisations.
+ * Only cameras see: a number counts the cameras that can see its cell. The setting is ours: never
+ * quote or borrow Orwell's text, characters or organisations.
  */
 
 export const OPERATION = "Operation Blind Spot";
 export const SENDER = "The Archivist";
-export const RECIPIENT = "Clerk, Records Department";
-export const SALUTATION = "Clerk,";
+export const RECIPIENT = "Draughtsman, Planning Office";
+export const SALUTATION = "Draughtsman,";
 export const SIGN_OFF = "The Archivist";
 export const DESTROY_NOTE = "Destroy after reading. The clock starts when you start the operation.";
 
@@ -26,10 +33,10 @@ export type Briefing = {
 const BRIEFINGS: Record<number, Briefing> = {
   1: {
     backstory: [
-      "You file the Ministry's surveillance reports. You know how to read them, and your work takes you between departments. That is why we need you.",
-      "Tonight we intend to take the Ministry's headquarters. Clerks, maintenance workers and guards are ready. The cameras would expose them before they reached their positions. We need a way to shut the network down without raising the alarm.",
-      "Start with the camera logs. They are scattered among the desks on the open floor, right under the cameras. Collect the full set. We need to find a route our people can use unseen.",
-      "Your pass explains your presence. It does not explain searching another clerk's desk. One sighting passes for an errand. Three bring an inspector.",
+      "You draw the Ministry's floor plans. Every plan in the building crosses your desk, but the cameras are drawn by the Surveillance Office and filed apart from yours. All that reaches you are the counts in its margins: for some points on a plan, how many cameras can see them.",
+      "We are going into the Ministry. Our team must know where every camera is before they set foot inside. You will mark them on your plans.",
+      "Start with the clerks' hall on the ground floor, where the team comes in. The counts will not settle every spot. Where they leave doubt, check the spot yourself on your rounds.",
+      "Your pass explains your presence on the floor. It does not explain lingering where a camera can see you. One sighting passes for an errand. Three bring an inspector.",
     ],
     orders: [
       "Clear every cell that isn't a camera.",
@@ -40,9 +47,9 @@ const BRIEFINGS: Record<number, Briefing> = {
   },
   2: {
     backstory: [
-      "The logs show the same stretches of the service corridor missing from every recording for six years. Someone in the Ministry wanted a way through the building that leaves no trace.",
-      "Our maintenance crew has walked part of that corridor, but never past the archive.",
-      "The building plans are filed in pieces in the corridor's alcoves, in plain sight of its cameras. Bring back every sheet. If the hidden route reaches the surveillance centre, it is the only way our people can get there unseen.",
+      "The clerks' hall is marked. From there the team needs the service corridors that run behind every department.",
+      "Our maintenance crew says one stretch has been missing from the recordings for years. If your plans agree, it is the team's way to the archive.",
+      "Mark every camera in the corridors. The team will walk them in the dark.",
     ],
     orders: [
       "A camera can't see past a wall, so a number counts only the cameras in line with it before a wall.",
@@ -53,9 +60,9 @@ const BRIEFINGS: Record<number, Briefing> = {
   },
   3: {
     backstory: [
-      "The plans show a sealed passage from the Inner Archive to the surveillance centre. It is real. Our guards have seen the door.",
-      "Switching the cameras off is not enough. If they go dark without a signed order, every door locks and the guards are recalled. The shutdown order and its codes are filed across the Inner Archive. Bring back every page.",
-      "The posted camera counts are printed in red. Some have been altered to mislead intruders. Staff carry the original counts. Our contact checked the alterations: in every row with red figures, exactly one was changed, always by one, up or down. An altered 2 was really a 1 or a 3. The rest are true.",
+      "The corridors end at the Inner Archive. Its plans are not drawn in our office. The Party keeps them, with its own camera registers.",
+      "The register counts are printed in red, and the Party alters them to mislead anyone who reads them. Our contact in the Surveillance Office checked the alterations: in every row with red figures, exactly one was changed, always by one, up or down. An altered 2 was really a 1 or a 3. The rest are true.",
+      "What you check on the floor is always true. Mark the archive's cameras. The team crosses it on the night.",
     ],
     orders: [
       "Red numbers are posted counts. In every row with red numbers, exactly one lies: it is one too high or one too low. The others are true.",
@@ -66,13 +73,13 @@ const BRIEFINGS: Record<number, Briefing> = {
   },
   4: {
     backstory: [
-      "The order is signed and the codes are good. Tonight the night crew waits in the passage, our guards stand at the archive door, and clerks on every floor wait for the screens to go dark.",
-      "The shutdown can only be given from the central surveillance room. Its controls are on the unwatched desks. Enter the order at each console. The cameras stay active until the last console is ready.",
-      "When the cameras stop, our people move at once: the communications floor, the directors' offices, the main gate. Nobody moves until you finish.",
+      "The last plan is the surveillance centre, where every camera in the Ministry is watched. It is the team's target, and the most watched room in the building.",
+      "Mark it and your plans are complete. The team goes in tonight at two, through the hall, the corridors and the archive, along the routes you have drawn.",
+      "Nobody moves until you finish.",
     ],
     orders: [
       "Red numbers are posted counts here too. In every row with red numbers, exactly one lies: it is one too high or one too low.",
-      "Clear every safe cell. Clearing a cell means entering the shutdown order at that desk.",
+      "Clear every safe cell.",
       "Mark each camera you find.",
       "Three strikes end your day.",
     ],
@@ -91,18 +98,18 @@ export function reportLetter(outcome: "filed" | "seen" | "toppled"): string[] {
   switch (outcome) {
     case "filed":
       return [
-        "The material is complete. Leave it in the agreed place. The night crew will collect it before your shift ends.",
+        "The plan is complete. Leave it in the agreed drawer. It will be copied and back on your desk before your shift ends.",
         "Your next orders are in the folder.",
       ];
     case "seen":
       return [
-        "The third sighting reached an inspector. Your desk will be searched tonight. Anything that ties you to us is already gone.",
-        "Our people stay where they are. Nobody moves today. Do not try to reach us. New orders come at midnight.",
+        "The third sighting reached an inspector. Your drawing office will be searched tonight. Anything that ties you to us is already gone.",
+        "The team stays where it is. Nobody moves today. Do not try to reach us. New orders come at midnight.",
       ];
     case "toppled":
       return [
-        "At ten past two the cameras went dark and stayed dark. No lockdown followed. The order carried the right codes.",
-        "Our guards opened the main gate. The night crew took the communications floor before the morning broadcast, and clerks held the stairwells to the directors' offices. The directors found their telephones dead and their doors guarded. By dawn they had surrendered the building.",
+        "At two the team came in through the clerks' hall. They crossed the corridors and the archive, and no camera they passed was anywhere your plans did not show it.",
+        "At ten past two they reached the surveillance centre and cut every screen in the Ministry. Our guards opened the main gate. By dawn the directors had surrendered the building.",
         "The Ministry's headquarters and its communications are ours. Its offices in other cities are not, and they will come for this building. Hold your post. New orders come at midnight.",
       ];
   }

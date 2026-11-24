@@ -24,6 +24,7 @@ export function Board({ game, selected, hinted, reveal, justMarked, onTap, onMar
   return (
     <BoardGrid
       cols={game.cols}
+      rows={game.rows}
       role="group"
       aria-label={`Record ${game.rows} rows by ${game.cols} columns`}
       {...input}

@@ -7,7 +7,7 @@ from dataclasses import replace
 
 from app.models.daily import DailyPuzzle
 from app.models.game import MAX_STRIKES, ClearOutcome, Game, GameStatus, OpenOutcome
-from app.models.hint import Hint, HintKind, NoHint
+from app.models.hint import Hint, HintKind
 from app.services.errors import GameOverError, InvalidMoveError
 from app.services.hints import find_camera_hint, find_safe_hint
 
@@ -86,7 +86,9 @@ def toggle_stamp(game: Game, cell: int) -> Game:
 
 def take_hint(game: Game, kind: HintKind) -> tuple[Game, Hint]:
     """Show where a camera (`CAMERA`) or a safe cell (`SAFE`) is, and count the hint against the
-    record. Finding nothing costs nothing. The Open hint is `open_cell`."""
+    record. An answer of "nothing" counts too: it still says something about the hidden cameras
+    (that the marks already cover them), so it must never come free. The Open hint is
+    `open_cell`."""
     _require_open(game)
     match kind:
         case HintKind.CAMERA:
@@ -95,8 +97,6 @@ def take_hint(game: Game, kind: HintKind) -> tuple[Game, Hint]:
             hint = find_safe_hint(game)
         case HintKind.OPEN:
             raise InvalidMoveError("Choose the cell to open.")
-    if isinstance(hint, NoHint):
-        return game, hint
     return replace(game, hints_used=(*game.hints_used, kind)), hint
 
 

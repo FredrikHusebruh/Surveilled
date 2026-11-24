@@ -4,7 +4,7 @@ import type { StandingState } from "../hooks/useStanding.ts";
 import { StandingChart } from "./StandingChart.tsx";
 
 /**
- * The end-of-day comparison on the day's last report: a headline ("Top 8% of clerks today."),
+ * The end-of-day comparison on the day's last report: a headline ("Top 8% of insiders today."),
  * the chart and a receipt of how the score was made.
  */
 export function StandingSection({ state }: { state: StandingState }) {

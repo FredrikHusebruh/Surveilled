@@ -124,7 +124,7 @@ def test_toggle_stamp_works_only_on_party_records() -> None:
         toggle_stamp(make_game(honest), 2)
 
 
-def test_a_hint_is_counted_by_kind_but_finding_nothing_is_free() -> None:
+def test_a_hint_is_counted_by_kind_even_when_it_finds_nothing() -> None:
     useful = make_game(make_puzzle(["C."], clues=[1]))
     all_marked = make_game(make_puzzle(["C."], clues=[1]), marks=frozenset({0}))
 
@@ -134,7 +134,7 @@ def test_a_hint_is_counted_by_kind_but_finding_nothing_is_free() -> None:
     assert after_useful.hints_used == (HintKind.CAMERA,)
     assert after_useful.hints == 1
     assert isinstance(hint, NoHint)
-    assert after_nothing.hints == 0
+    assert after_nothing.hints_used == (HintKind.CAMERA,)
 
 
 def test_open_is_not_taken_as_a_plain_hint() -> None:

@@ -105,14 +105,18 @@ def test_the_safe_hint_points_out_a_wrong_mark_first() -> None:
     assert find_safe_hint(game) == WrongMarkHint(4)
 
 
-def test_the_camera_hint_points_at_a_real_camera_despite_a_wrong_mark() -> None:
+def test_the_camera_hint_points_out_a_wrong_mark_first() -> None:
     game = make_game(make_puzzle(["C..", ".C."], clues=[2]), marks=frozenset({3}))
 
-    hint = find_camera_hint(game)
+    assert find_camera_hint(game) == WrongMarkHint(3)
 
-    assert isinstance(hint, ClueHint | DeductionHint | LocatedHint)
-    assert hint.is_camera
-    assert game.puzzle.board.cameras[hint.cell]
+
+def test_marking_every_other_cell_cannot_ask_the_camera_hint_where_the_cameras_are_not() -> None:
+    # Marks on every hidden cell but one: had wrong marks been ignored, "nothing" would have
+    # proved that last cell safe.
+    game = make_game(make_puzzle(["C..", "..."]), marks=frozenset({0, 1, 2, 3, 4}))
+
+    assert find_camera_hint(game) == WrongMarkHint(1)
 
 
 def test_the_camera_hint_finds_nothing_once_every_camera_is_marked() -> None:

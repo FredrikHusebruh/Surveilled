@@ -1,7 +1,10 @@
 """Hint finding: the simplest provable step, given only what the player could know.
 
-The day's Camera and Safe cell hints point at a cell of their kind: one a single number proves if
-there is one, else one the solver proves, else (when nothing proves one yet) any such cell.
+The day's Camera and Safe hints first point out a wrong mark, if the player has one, then a cell of
+their kind: one a single number proves if there is one, else one the solver proves, else (when
+nothing proves one yet) any such cell. Pointing out wrong marks first matters for more than help:
+otherwise a hint that answers "nothing" would tell the player, for free, that their marks cover
+every camera, and marks are free to move.
 `find_hint` takes whichever kind is easiest; the tests play records through it.
 """
 
@@ -36,10 +39,13 @@ def find_hint(game: Game) -> Hint:
 
 
 def find_camera_hint(game: Game) -> Hint:
-    """Where a camera is: one a single number proves, else one the solver proves, else any camera
-    the player hasn't marked. Wrong marks are left out of what the player knows, so a proof never
-    rests on one."""
-    return _hint_of_kind(game, is_camera=True, known=player_knowledge(game, trust_marks=False))
+    """Where a camera is: a wrongly marked cell first (the player has it wrong, and every proof
+    rests on the marks), then one a single number proves, else one the solver proves, else any
+    camera the player hasn't marked."""
+    wrong_mark = _wrong_mark(game)
+    if wrong_mark is not None:
+        return wrong_mark
+    return _hint_of_kind(game, is_camera=True, known=player_knowledge(game))
 
 
 def find_safe_hint(game: Game) -> Hint:
@@ -51,11 +57,10 @@ def find_safe_hint(game: Game) -> Hint:
     return _hint_of_kind(game, is_camera=False, known=player_knowledge(game))
 
 
-def player_knowledge(game: Game, *, trust_marks: bool = True) -> list[int]:
+def player_knowledge(game: Game) -> list[int]:
     """Per-cell UNKNOWN/SAFE/CAMERA as the player sees it.
 
-    Marks count as cameras, so check for wrong marks before trusting this, or leave them out with
-    `trust_marks=False` (only the correct marks then count).
+    Marks count as cameras, so check for wrong marks before trusting this.
     """
     board = game.puzzle.board
     known = [UNKNOWN] * board.size
@@ -63,8 +68,7 @@ def player_knowledge(game: Game, *, trust_marks: bool = True) -> list[int]:
         known[clue.cell] = SAFE
     for cell in game.cleared:
         known[cell] = SAFE
-    marks = game.marks if trust_marks else {cell for cell in game.marks if board.cameras[cell]}
-    for cell in game.exposed | marks:
+    for cell in game.exposed | game.marks:
         known[cell] = CAMERA
     return known
 

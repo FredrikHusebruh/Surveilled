@@ -22,7 +22,7 @@ const BACK = "bg-[color-mix(in_oklab,var(--dossier),var(--ink)_14%)]";
  * The manila file folder each record arrives in: a back cover with a file tab, the white orders
  * peeking out over the top, and the front cover with a TOP SECRET stamp and a pasted label, tied
  * shut with a red ribbon under the Ministry's wax seal. Opening it breaks the seal, swings the
- * cover open towards the player and lifts the orders out (design rule 9); they then unfold in full.
+ * cover open towards the player and lifts the orders out (design rule 9); they then unfold on the desk.
  *
  * Flat fills and ink lines on a size container, so it scales with the page; measurements are a
  * share of its width (`cqi`).
@@ -87,7 +87,7 @@ export function Folder({ dayNumber, numeral, total, name, opening, onOpened }: P
           className={`absolute inset-0 origin-left border-[1.5px] border-ink ${COVER} ${animate("motion-safe:animate-cover-open")}`}
         >
           <p className="absolute top-[7%] left-[6%] text-[length:max(11px,2.8cqi)] tracking-[0.12em] text-muted uppercase">
-            Records Department
+            Planning Office
           </p>
           <span
             className={`absolute top-[18%] left-[6%] -rotate-6 border-[0.6cqi] border-party px-[2cqi] pt-[0.8cqi] pb-[0.4cqi] font-stencil text-[length:7.5cqi] leading-none font-black whitespace-nowrap text-party uppercase ${COVER}`}

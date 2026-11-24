@@ -47,13 +47,13 @@ function scoreBars(standing: Standing) {
   const bars = counts.map((count, index) => {
     const start = Math.round(lowSeconds + index * width);
     const end = Math.round(lowSeconds + (index + 1) * width);
-    return { count, tip: `${count} ${count === 1 ? "clerk" : "clerks"} scored ${formatClock(start)} to ${formatClock(end)}` };
+    return { count, tip: `${count} ${count === 1 ? "insider" : "insiders"} scored ${formatClock(start)} to ${formatClock(end)}` };
   });
   const position = Math.floor((standing.scoreSeconds - lowSeconds) / width);
   return {
     bars,
     mine: Math.min(counts.length - 1, Math.max(0, position)),
-    title: "Scores of clerks who toppled it",
+    title: "Scores of insiders who toppled it",
     from: `${formatClock(lowSeconds)} faster`,
     to: `slower ${formatClock(highSeconds)}`,
   };
@@ -63,12 +63,12 @@ function reachBars(standing: Standing) {
   const last = standing.reached.length - 1;
   const bars: Bar[] = standing.reached.map((count, filed) => {
     const label = filed === last ? "Toppled" : `Seen on ${romanNumeral(filed)}`;
-    return { count, tip: `${label}: ${count} ${count === 1 ? "clerk" : "clerks"}` };
+    return { count, tip: `${label}: ${count} ${count === 1 ? "insider" : "insiders"}` };
   });
   return {
     bars,
     mine: standing.levelsFiled,
-    title: "How far clerks got today",
+    title: "How far insiders got today",
     from: "Seen on I",
     to: "Toppled",
   };
